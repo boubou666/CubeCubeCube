@@ -4,9 +4,22 @@ A relaxing, original browser puzzle inspired by CubeAway's arrow-clearing idea. 
 
 **[Play online](https://boubou666.github.io/CubeCubeCube/)** · **[Source code](https://github.com/boubou666/CubeCubeCube)**
 
+**[Changelog](CHANGELOG.md)** · **[Releases](https://github.com/boubou666/CubeCubeCube/releases)**
+
 ## Publishing
 
 GitHub Pages serves the production build. Every push to `main` runs the puzzle tests and Chromium gameplay tests, then builds and deploys the game through `.github/workflows/pages.yml`. The workflow supplies the repository base path to Vite, so assets and the home link work under `/CubeCubeCube/`. It can also be run manually from GitHub Actions.
+
+## Releases and changelog
+
+Record notable changes in the `Unreleased` section of `CHANGELOG.md`, under the relevant Keep a Changelog headings. For a release:
+
+1. Update the version in `package.json` and `package-lock.json` together, for example with `npm version 0.2.0 --no-git-tag-version`.
+2. Move the pending notes into a dated `## [0.2.0] - YYYY-MM-DD` section and update the comparison links.
+3. Commit and push the changes to `main`, then wait for its checks to pass.
+4. Create and push an annotated matching tag: `git tag -a v0.2.0 -m "Cube Cube Cube v0.2.0"`, then `git push origin v0.2.0`.
+
+The `Publish release` workflow validates the tag, package versions, dated changelog entry, and membership in `main`. It runs the tests, builds a portable static website, and creates a GitHub release using the matching changelog notes. The release includes a `CubeCubeCube-vX.Y.Z-web.zip` archive; source archives are also provided by GitHub. Prerelease versions such as `v0.2.0-beta.1` are marked as prereleases automatically. Existing tags are never moved.
 
 ## Play locally
 

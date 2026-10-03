@@ -1,0 +1,58 @@
+name: Publish release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out tagged version
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Require a commit on main
+        run: git merge-base --is-ancestor HEAD origin/main
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Validate version and prepare changelog notes
+        id: notes
+        run: node scripts/prepare-release.mjs
+      - name: Test release
+        run: npm test
+      - name: Build portable static website
+        run: npm run build
+        env:
+          PAGES_BASE_PATH: ./
+      - name: Package website
+        env:
+          RELEASE_VERSION: ${{ steps.notes.outputs.version }}
+        run: |
+          cp CHANGELOG.md dist/CHANGELOG.md
+          printf '%s\n' '# Cube Cube Cube' '' 'Play online: https://boubou666.github.io/CubeCubeCube/' '' 'To play this downloaded build, serve this folder with an HTTP server.' 'For example: python -m http.server 8080' 'Then open http://localhost:8080/ in a WebGL-capable browser.' > dist/README.md
+          cd dist
+          zip -r "../CubeCubeCube-v${RELEASE_VERSION}-web.zip" .
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ steps.notes.outputs.version }}
+          IS_PRERELEASE: ${{ steps.notes.outputs.prerelease }}
+        run: |
+          flags=()
+          if [[ "$IS_PRERELEASE" == "true" ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" "CubeCubeCube-v${RELEASE_VERSION}-web.zip" --verify-tag --title "Cube Cube Cube ${RELEASE_TAG}" --notes-file .local/release-notes.md "${flags[@]}"

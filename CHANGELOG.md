@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-10-04
+
+### Added
+
+- Three.js arrow-clearing puzzle with 23 introductory levels and an endless seeded journey.
+- Progressive difficulty through larger boards, denser arrows, deeper dependencies, longer paths, and combined mechanics.
+- Colored ridges that carry arrows across connected faces.
+- Opposite-ended arrows with a direction selected by tapping a head.
+- Forked arrows that move both heads simultaneously and require both routes to be clear.
+- Pause circles that allow arrows to park temporarily and unlock other routes.
+- Rectangular boards, tunnels with playable inner walls, and integrated stepped sections.
+- Unrestricted rotation, zoom, camera reset, hints, undo, and restart.
+- Local progress saves, replayable puzzle numbers, collection paging, and compact completion records.
+- Responsive layouts, three color palettes, optional sound, and reduced-motion support.
+- Automated puzzle tests, browser gameplay tests, and GitHub Pages deployment.
+- Tag-triggered GitHub releases with changelog notes and a downloadable static web build.
+
+### Fixed
+
+- Camera rotation through poles and upside-down views.
+- Forked arrows incorrectly leaving when only one head had a clear path.
+- Arrows being generated with exits that ran into tunnel walls or other solid geometry.
+- Asset paths and the home link when hosted under a GitHub Pages repository path.
+
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/boubou666/CubeCubeCube/releases/tag/v0.1.0
