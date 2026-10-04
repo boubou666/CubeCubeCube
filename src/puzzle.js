@@ -1,5 +1,6 @@
 // Discrete surface rules. This module deliberately has no renderer or DOM dependencies.
 import { hasMechanisms, analyzeMechanismMove, solveMechanisms, mechanismPuzzle, inSection } from './mechanics.js';
+import { parkingPocket } from './parking.js';
 export { hasMechanisms } from './mechanics.js';
 export const FACES = {
   front: { normal: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0] },
@@ -260,6 +261,19 @@ function advanceArrow(arrow, routes, end, size) {
 // Circle puzzles can change occupancy. Search board states, not just removal sets.
 export function solveWithStops(level, initial = new Set(), maxStates = 20000) {
   if (hasMechanisms(level)) return solveMechanisms(level, initial, maxStates);
+  if (level.parkingGroups) {
+    // Search each protected group, never combinations of unrelated filler moves.
+    const moves = [], grouped = new Set(level.parkingGroups.flat());
+    for (const ids of level.parkingGroups) {
+      const pocket = { ...level, arrows: level.arrows.filter(a => ids.includes(a.id)), independentStops: false, parkingGroups: null };
+      const solution = solveWithStops(pocket, new Set(ids.filter(id => initial.has(id))), maxStates);
+      if (!solution) return null;
+      moves.push(...solution);
+    }
+    const filler = { ...level, arrows: level.arrows.filter(a => !grouped.has(a.id)), circles: [], parkingGroups: null, independentStops: true };
+    const solution = solveWithStops(filler, new Set([...initial].filter(id => !grouped.has(id))), maxStates);
+    return solution ? [...moves, ...solution] : null;
+  }
   // Generated circle pockets are isolated from the filler routes. Their small
   // parking cycles can be solved greedily without searching the whole large board.
   if (level.independentStops) {
@@ -487,7 +501,7 @@ export function levelMeta(index) {
   const bridges = connections.slice(0, Math.min(4, 1 + Math.floor(ordinal / 16))).map((faces, i) => ({ faces, color: ['#d89b54', '#b97e93', '#8aa99b', '#92a3ba'][i] }));
   const cells = surfaceLayout(size).cells.length;
   const mechanism = variation === 3 && tier >= 2 ? 'pressure' : variation === 5 && tier >= 3 ? 'fixed' : variation === 1 && tier >= 4 ? 'alternating' : variation === 0 && tier >= 5 ? 'rotation' : variation === 7 && tier >= 6 ? 'mixed' : null;
-  const family = mechanism === 'pressure' ? 'Parking' : mechanism === 'rotation' ? 'Rotation' : mechanism === 'mixed' ? 'Mixed' : mechanism ? 'Deflection' : shape === 'Tunnel' ? 'Tunnels' : shape === 'Terraces' ? 'Terraces' : variation === 3 ? 'Parking' : variation === 1 ? 'Branches' : 'Connections';
+  const family = mechanism === 'pressure' ? 'Parking' : mechanism === 'rotation' ? 'Rotation' : mechanism === 'mixed' ? 'Mixed' : mechanism ? 'Deflection' : variation === 2 || variation === 3 ? 'Parking' : shape === 'Tunnel' ? 'Tunnels' : shape === 'Terraces' ? 'Terraces' : variation === 1 ? 'Branches' : 'Connections';
   return {
     title: `Beyond the corners ${ordinal + 1}`, caption: 'A new puzzle, a little deeper. There is always another perspective.',
     difficulty: `Tier ${tier} · ${family}`, family, mechanism, endless: true, ordinal, tier, shape, size,
@@ -496,6 +510,7 @@ export function levelMeta(index) {
     twoHeads: 0.12, branches: Math.min(0.35, 0.08 + ordinal * 0.003),
     pressure: 0.9 * ordinal / (ordinal + 100),
     stopPockets: variation === 3 || variation === 7 ? side >= 8 && tier >= 4 ? 2 : 1 : 0,
+    parkingChallenge: variation === 2 || variation === 3 || variation === 7,
   };
 }
 
@@ -534,10 +549,11 @@ export function difficultyStats(level) {
   return { depth: Math.max(0, ...depths.values()), choices: availableArrows(level).length, forks: level.arrows.filter(a => a.branch).length };
 }
 
-function generateEndless(index, legacy = false) {
-  const meta = levelMeta(index), advanced = !legacy && meta.mechanism;
+function generateEndless(index, generation = 3) {
+  const meta = levelMeta(index), advanced = generation > 1 && meta.mechanism;
+  const complexParking = generation >= 3 && !advanced && meta.parkingChallenge;
   const special = advanced ? mechanismPuzzle(meta.mechanism, typeof meta.size === 'number' ? meta.size : meta.size.x, 'back') : null;
-  const pockets = advanced ? { ...special, reserved: [] } : circlePockets(meta);
+  const pockets = advanced ? { ...special, reserved: [] } : complexParking ? parkingPocket(meta, surfaceLayout(meta.size)) : circlePockets(meta);
   if (advanced) {
     // Keep each stateful teaching pocket independent of the large filler board.
     // Reserve its face and every exit corridor; rotating crowns own the upper slab.
@@ -567,6 +583,12 @@ function generateEndless(index, legacy = false) {
   const nextId = best.arrows.length;
   best.arrows.push(...pockets.arrows.map((a, i) => ({ ...a, id: nextId + i })));
   best.circles = pockets.circles; best.independentStops = true; best.endless = true;
+  if (complexParking) {
+    best.parkingGroups = [pockets.arrows.map((_, i) => nextId + i)];
+    best.parkingPocketCount = pockets.arrows.length;
+    best.parkingStats = pockets.stats;
+    best.independentStops = false;
+  }
   if (advanced) {
     for (const property of ['buttons', 'gates', 'deflectors', 'triggers', 'rotors']) best[property] = pockets[property];
     best.bridges = [...best.bridges, ...pockets.bridges];
@@ -580,13 +602,15 @@ function generateEndless(index, legacy = false) {
   return best;
 }
 
-export function createLevel(index, legacy = false) {
+export function createLevel(index, generation = 3) {
+  // Preserve the older boolean API as well as existing saved generations.
+  if (typeof generation === 'boolean') generation = generation ? 1 : 2;
   if (!isLevelIndex(index)) throw new RangeError('Unknown level');
   if (index >= LEVELS.length) {
-    const cacheId = `${index}:${legacy}`;
+    const cacheId = `${index}:${generation}`;
     if (!endlessCache.has(cacheId)) {
       if (endlessCache.size >= 8) endlessCache.delete(endlessCache.keys().next().value);
-      endlessCache.set(cacheId, generateEndless(index, legacy));
+      endlessCache.set(cacheId, generateEndless(index, generation));
     }
     return structuredClone(endlessCache.get(cacheId));
   }
@@ -603,9 +627,9 @@ export function createLevel(index, legacy = false) {
 }
 
 export class PuzzleGame {
-  constructor(index = 0, savedRemoved = [], savedMoves = [], generation = 2) { this.load(index, savedRemoved, savedMoves, generation); }
-  load(index, savedRemoved = [], savedMoves = [], generation = 2) {
-    this.index = index; this.generation = generation; this.level = createLevel(index, generation === 1);
+  constructor(index = 0, savedRemoved = [], savedMoves = [], generation = 3) { this.load(index, savedRemoved, savedMoves, generation); }
+  load(index, savedRemoved = [], savedMoves = [], generation = 3) {
+    this.index = index; this.generation = generation; this.level = createLevel(index, generation);
     this.removed = new Set(savedMoves.length ? [] : savedRemoved.filter(id => this.level.arrows.some(a => a.id === id)));
     this.history = [...this.removed].map(id => ({ id, end: 0, removed: true }));
     this.mistakes = 0;

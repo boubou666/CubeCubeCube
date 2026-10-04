@@ -1,6 +1,6 @@
 export const SAVE_KEY = 'cubecubecube.save.v1';
 import { LEVELS, isLevelIndex, ORIGINAL_OPENING_COUNT, NEW_OPENING_COUNT } from './puzzle.js';
-const EMPTY = { version: 4, generation: 2, index: 0, removed: [], moves: [], completed: [], endlessCompleted: [], frontier: LEVELS.length, sound: false, theme: 'ivory' };
+const EMPTY = { version: 4, generation: 3, index: 0, removed: [], moves: [], completed: [], endlessCompleted: [], frontier: LEVELS.length, sound: false, theme: 'ivory' };
 const emptySave = () => ({ ...EMPTY, removed: [], moves: [], completed: [], endlessCompleted: [] });
 
 export function hasCompleted(save, index) {
@@ -32,7 +32,7 @@ export function readSave(storage = globalThis.localStorage) {
     }
     const result = {
       version: 4,
-      generation: s.generation === 1 ? 1 : 2,
+      generation: [1, 2, 3].includes(s.generation) ? s.generation : 2,
       index: isLevelIndex(s.index) ? s.index : 0,
       removed: Array.isArray(s.removed) ? [...new Set(s.removed.filter(v => Number.isInteger(v) && v >= 0))] : [],
       moves: Array.isArray(s.moves) ? s.moves.slice(0, 1000).filter(m => Number.isInteger(m?.id) && m.id >= 0 && (m.end === 0 || m.end === 1)).map(({ id, end }) => ({ id, end })) : [],

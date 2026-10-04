@@ -10,7 +10,7 @@ test('generated puzzles across early and distant tiers have valid surfaces and c
     const valid = new Set(layout.cells.map(key)), occupied = new Set();
     assert.ok(level.arrows.length >= 35, `too sparse: ${index}`);
     for (const arrow of level.arrows) {
-      const pocketStart = level.arrows.length - (level.mechanismPocketCount ?? levelMeta(index).stopPockets * 2);
+      const pocketStart = level.arrows.length - (level.mechanismPocketCount ?? level.parkingPocketCount ?? levelMeta(index).stopPockets * 2);
       if (arrow.id < pocketStart && level.circles.length) {
         for (const end of arrow.twoHeads || arrow.branch ? [0, 1] : [0]) assert.equal(travelRoute(arrow, level.size, level.bridges, end, level.circles).stopped, false, 'filler routes must never hit a parking circle');
       }
@@ -27,10 +27,12 @@ test('generated puzzles across early and distant tiers have valid surfaces and c
       }
     }
     const game = new PuzzleGame(index);
-    // Reverse choice order also exercises circles before filler arrows; their
-    // reserved pockets must not cause a deadlock after any legal player move.
+    // Stateful parking groups require planning. All other boards also tolerate
+    // reverse choice order, including mechanism pockets before filler arrows.
+    const planned = level.parkingGroups ? solveWithStops(level) : null;
+    if (level.parkingGroups) assert.ok(planned, `missing solution: ${index}`);
     for (let move = 0; move < level.arrows.length * 3 && game.remaining; move++) {
-      const option = availableMoves(game.level, game.removed).at(-1);
+      const option = planned ? planned[move] : availableMoves(game.level, game.removed).at(-1);
       assert.ok(option, `deadlock at puzzle ${index + 1}`);
       assert.ok(['moved', 'removed', 'complete'].includes(game.tryRemove(option.id, option.end).status));
     }
@@ -55,9 +57,8 @@ test('endless circle pockets require parking and resume with undo and saved move
   const index = LEVELS.length + 31, original = createLevel(index), game = new PuzzleGame(index);
   const solution = solveWithStops(original);
   assert.ok(solution && solution.length > original.arrows.length);
-  const pocketId = original.arrows.length - 4;
-  assert.equal(game.tryRemove(pocketId + 1).status, 'blocked');
-  assert.equal(game.tryRemove(pocketId).status, 'moved');
+  const first = solution[0], pocketId = first.id;
+  assert.equal(game.tryRemove(pocketId, first.end).status, 'moved');
   const resumed = new PuzzleGame(index, [...game.removed], game.saveMoves);
   assert.deepEqual(resumed.level.arrows, game.level.arrows);
   assert.equal(resumed.undo(), pocketId); assert.deepEqual(resumed.level, original);

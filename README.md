@@ -40,7 +40,9 @@ Boards grow from 7 to 10 cells per side; density and path length also have pract
 
 Families cover foundations, connections, parking, branches, tunnels, terraces, deflection, rotation, and mixed mechanics. Endless tiers introduce pressure buttons at tier 2, fixed deflectors at tier 3, alternating deflectors at tier 4, rotating crowns at tier 5, and mixed pressure/deflection on terraces at tier 6. Stateful pockets reserve their surface and exit corridors so the surrounding filler cannot break their solutions.
 
-Arrows are built in reverse solution order: their exit routes must be clear of all earlier arrows, both routes for a fork, and solid geometry. Several seeded candidates are compared for dependency depth and opening choices. Circle levels contain protected parking pockets that require parking a short arrow to free a winding one; filler arrows cannot cross those pockets or their routes. This preserves solvability after any legal move and lets hints work on large boards without an expensive global search.
+Arrows are built in reverse solution order: their exit routes must be clear of all earlier arrows, both routes for a fork, and solid geometry. Several seeded candidates are compared for dependency depth and opening choices. Circle levels draw from 38 audited dependency layouts with three to five arrows, several stops, opposite-head choices, and coordinated forks. Early groups need at least three parking moves; later groups require four, five, then seven. Circle challenges continue appearing on unequal-face boards throughout the journey.
+
+Parking groups reserve their surface so filler cannot break their solutions. Hints search each small group independently, then solve the surrounding arrows, avoiding an expensive search of the entire board. Choosing another head or parking order can block a solution: undo remains available, and hints explicitly explain when a step must be undone.
 
 Generation retries and a deterministic density fallback handle crowded seeds. Only a small cache of generated boards and a page of collection cards are kept in memory. Completed endless puzzles are stored as merged number ranges, so thousands of consecutive completions occupy a few bytes rather than thousands of save entries.
 
@@ -54,6 +56,7 @@ Generation retries and a deterministic density fallback handle crowded seeds. On
 - Opposite-ended two-headed arrows move toward the head you tap. Forks count as one arrow and move both heads along their own routes simultaneously. Both routes must be clear, whichever head or part of the body you tap.
 - A small circle pauses an arrow when its head reaches it. Its new body position changes which arrows it blocks; tap again to resume. Level 17 requires parking an arrow to break a dependency cycle.
 - A pressure button also pauses a head. It holds gates of the same color open while the head stays there; its gates close as soon as that head departs. A departing head cannot use its own released gate.
+- Every arrow and either live fork head can operate a button. Mechanism levels briefly lock all arrow input during movement, then unlock when it finishes. If an animation fails, the committed final state is restored and play continues.
 - Blue bent tiles turn a passing head 90 degrees left or right. Striped purple tiles do the same, then reverse their turn for the next head. A blocked move never changes a deflector. These tiles are operated by arrows, with no direct tile controls.
 - Parking a head on a blue spiral turns the upper section 90 degrees around the vertical axis. Its arrows, tiles, and colored ridges rotate with it. Arrows spanning the moving seam prevent rotation until cleared. The first rotating shape uses a square crown above a fixed base, so all four orientations preserve the solid geometry.
 - Later boards include rectangular prisms, a tunnel through a solid, and a larger solid with a stepped section cut into one corner. Arrows use the exposed surface, including inner walls, treads, and risers. An exit must clear the solid itself; generated arrows cannot fly into a tunnel wall or another part of the shape.
@@ -65,6 +68,8 @@ Generation retries and a deterministic density fallback handle crowded seeds. On
 Current puzzle progress, undo history, completed puzzles, journey position, sound, and palette preferences are saved in browser local storage. Saved moves include the chosen head and circle parking, so reloading restores the moved board and undo history. Original saves are migrated automatically. Only the active puzzle's partial progress is retained when switching levels. Completed level badges remain earned if you replay or undo. Clearing browser storage resets progress.
 
 Save format 4 also replays button parking, alternating turns, and section rotations. Earlier endless indices and completion ranges shift by five to make room for the new lessons. An existing endless session retains the previous mechanic generation until the player starts another puzzle; all movement uses the corrected collision rules.
+
+Generator 3 adds the richer circle layouts. Saves from generators 1 and 2 keep the active puzzle and its move history intact, including after restart. Starting another numbered puzzle uses generator 3.
 
 ## Verification
 
@@ -82,6 +87,7 @@ The tests verify the 28 opening solutions and generated samples across early, la
 
 - `src/puzzle.js`: discrete surface topology for cubes and voxel solids, branching arrows, movement rules, seeded level generation, solution search, and game state. No Three.js or DOM dependencies.
 - `src/mechanics.js`: pressure occupancy, gates, fixed and alternating turns, rigid section rotation, transactional movement, stateful solution search, and mechanic lesson layouts.
+- `src/parking.js`: audited circle dependency patterns, tier selection, and seeded surface placement.
 - `src/scene.js`: rounded cube, arrow meshes, occlusion-aware picking, free trackball controls, quaternion camera transitions, and path-following animations.
 - `src/main.js`: interface, input, sound, preferences, and progress orchestration.
 - `src/storage.js`: versioned browser save format, validation, and graceful handling of unavailable storage.

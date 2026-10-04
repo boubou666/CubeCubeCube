@@ -1,6 +1,7 @@
 import { LEVELS, FAMILIES, levelMeta, isLevelIndex, PuzzleGame, availableArrows, availableMoves, solveWithStops, hasMechanisms } from './puzzle.js';
 import { readSave, writeSave, hasCompleted, completedCount, markCompleted } from './storage.js';
 import { CubeScene } from './scene.js';
+import { pressedButtons } from './mechanics.js';
 
 const paths = {
   arrow: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
@@ -204,7 +205,10 @@ function removeArrow(id, end = 0) {
       else refresh();
     } else finished();
   }, result.route, result.end, result.mechanisms ? result.parkedArrow : result.updatedArrow, result.routes);
-  if (result.status === 'moved') toast(result.rotations?.length ? 'The upper section is turning. Its arrows move with it.' : result.route?.trigger ? 'Paused on the spiral.' : game.level.buttons?.some(b => result.updatedArrow?.cells.at(-1)?.face === b.face && result.updatedArrow.cells.at(-1).x === b.x && result.updatedArrow.cells.at(-1).y === b.y) ? 'Button held. The matching gate is open.' : 'Paused on the circle. Tap this arrow again to continue.', 3500);
+  if (result.status === 'moved') {
+    const buttonHeld = pressedButtons({ ...game.level, arrows: [result.updatedArrow] }).size > 0;
+    toast(result.rotations?.length ? 'The upper section is turning. Its arrows move with it.' : result.route?.trigger ? 'Paused on the spiral.' : buttonHeld ? 'Button held. The matching gate is open.' : 'Paused on the circle. Tap this arrow again to continue.', 3500);
+  }
   else if (game.remaining && game.remaining % 6 === 0) toast(['A little more room.', 'Things are opening up.', 'One step at a time.'][Math.floor(game.remaining / 6) % 3], 1500);
 }
 
@@ -218,9 +222,11 @@ function hint() {
   let moves = availableMoves(game.level, game.removed).filter(m => !scene.animations.has(m.id));
   if (hasMechanisms(game.level) || (game.level.circles?.length && !game.level.independentStops)) {
     const solution = solveWithStops(game.level, game.removed);
-    if (solution?.length && !scene.animations.has(solution[0].id)) moves = [solution[0]];
+    if (!solution) { toast('This parking order blocks the solution. Undo a step to reopen a route.', 3200); return; }
+    if (solution.length && scene.animations.has(solution[0].id)) { toast('Let the arrow reach its stop, then continue.', 1600); return; }
+    if (solution.length) moves = [solution[0]];
   }
-  if (!moves.length) { toast('Let the arrows settle for a moment.', 1600); return; }
+  if (!moves.length) { toast(scene.busy ? 'Let the arrows settle for a moment.' : 'No clear move. Undo a step to reopen a route.', 2600); return; }
   // Cycle hints so keyboard players can choose another route, including other faces.
   const current = moves.findIndex(m => m.id === selectedId && m.end === selectedEnd);
   const next = moves[(current + 1) % moves.length]; selectedId = next.id; selectedEnd = next.end;
@@ -230,7 +236,7 @@ function loadLevel(index, restart = false) {
   if (index === game.index && !restart) return;
   revision++; winShown = false; clearTimeout(winTimer); clearTimeout(toastTimer); $('#toast').classList.remove('visible');
   closeDialog($('#win-dialog')); selectedId = null;
-  game.load(index, [], [], restart ? game.generation : 2); scene.load(game.level, game.removed, save.theme); scene.resetView(); renderUI(); persist();
+  game.load(index, [], [], restart ? game.generation : 3); scene.load(game.level, game.removed, save.theme); scene.resetView(); renderUI(); persist();
   if (restart) toast('A fresh start.', 1600);
 }
 function renderCollection() {

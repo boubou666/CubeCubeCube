@@ -391,14 +391,11 @@ test('later endless circles and a distant tier render, park, reload, and remain 
   await page.locator('#jump-form button').click();
   await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 32}`);
   await expect(page.locator('#mechanic-notice')).toContainText('Circle = pause');
-  const id = await page.evaluate(() => window.__cubeDebug.game.level.arrows.length - 4);
-  // Cycle the actual hint control to the independently solvable parking pocket.
+  // The hint plans the dependent parking group before unrelated filler arrows.
   await page.locator('#cube-canvas').focus();
-  for (let i = 0; i < 200; i++) {
-    await page.keyboard.press('h');
-    if (await page.evaluate(() => window.__cubeDebug.scene.hintId) === id) break;
-  }
-  expect(await page.evaluate(() => window.__cubeDebug.scene.hintId)).toBe(id);
+  await page.keyboard.press('h');
+  const id = await page.evaluate(() => window.__cubeDebug.scene.hintId);
+  expect(await page.evaluate(id => window.__cubeDebug.game.level.parkingGroups[0].includes(id), id)).toBe(true);
   await page.keyboard.press('Enter');
   await expect(page.locator('#toast')).toContainText('Paused on the circle');
   await page.waitForFunction(() => window.__cubeDebug.scene.animations.size === 0);

@@ -468,6 +468,16 @@ export class CubeScene {
     this.addArrow(this.level.arrows.find(a => a.id === id));
   }
 
+  finishArrow(id, animation) {
+    // Always release the movement lock before refreshing mechanism state.
+    this.animations.delete(id);
+    const entry = this.meshes.get(id);
+    this.meshes.delete(id);
+    if (entry) this.disposeArrow(entry);
+    if (animation.updatedArrow) this.addArrow(animation.updatedArrow);
+    animation.onDone?.();
+  }
+
   animate = () => {
     this.frame = requestAnimationFrame(this.animate);
     const now = performance.now();
@@ -487,44 +497,46 @@ export class CubeScene {
     }
     this.controls.update();
     for (const [id, animation] of this.animations) {
-      const entry = this.meshes.get(id); if (!entry) continue;
-      const t = Math.min(1, (now - animation.start) / animation.duration);
-      if (animation.legs) {
-        for (const leg of animation.legs) {
-          const distance = leg.distance * (t * t * (3 - 2 * t));
-          leg.line.geometry.dispose();
-          leg.line.geometry = new THREE.TubeGeometry(new WindowCurve(leg.extended, distance, leg.length), 48, 0.037, 7, false);
-          const headDistance = distance + leg.length;
-          leg.extended.atDistance(headDistance, leg.tip.position);
-          const tangent = leg.extended.atDistance(headDistance + 0.035).sub(leg.extended.atDistance(headDistance - 0.035)).normalize();
-          setTipOrientation(leg.tip, tangent, headDistance > leg.surfaceLength ? leg.finalNormal : this.normalAt(leg.tip.position));
-          if (leg.tail) leg.extended.atDistance(distance, leg.tail.position);
-          leg.line.visible = leg.tip.visible = leg.stopped || t < 1;
+      const entry = this.meshes.get(id);
+      const t = animation.duration > 0 && Number.isFinite(animation.duration) ? Math.min(1, (now - animation.start) / animation.duration) : 1;
+      if (!entry || t >= 1) { this.finishArrow(id, animation); continue; }
+      try {
+        if (animation.legs) {
+          for (const leg of animation.legs) {
+            const distance = leg.distance * (t * t * (3 - 2 * t));
+            leg.line.geometry.dispose();
+            leg.line.geometry = new THREE.TubeGeometry(new WindowCurve(leg.extended, distance, leg.length), 48, 0.037, 7, false);
+            const headDistance = distance + leg.length;
+            leg.extended.atDistance(headDistance, leg.tip.position);
+            const tangent = leg.extended.atDistance(headDistance + 0.035).sub(leg.extended.atDistance(headDistance - 0.035)).normalize();
+            setTipOrientation(leg.tip, tangent, headDistance > leg.surfaceLength ? leg.finalNormal : this.normalAt(leg.tip.position));
+            if (leg.tail) leg.extended.atDistance(distance, leg.tail.position);
+            leg.line.visible = leg.tip.visible = leg.stopped || t < 1;
+          }
+        } else {
+          const distance = animation.distance * (t * t * (3 - 2 * t));
+          const slice = new WindowCurve(animation.extended, distance, animation.length);
+          entry.line.geometry.dispose(); entry.line.geometry = new THREE.TubeGeometry(slice, 48, 0.037, 7, false);
+          const movingTip = animation.end === 1 ? entry.otherTip : entry.tip;
+          const headDistance = distance + animation.length;
+          animation.extended.atDistance(headDistance, movingTip.position);
+          const tangent = animation.extended.atDistance(headDistance + 0.035).sub(animation.extended.atDistance(headDistance - 0.035)).normalize();
+          const headNormal = headDistance > animation.surfaceLength ? animation.finalNormal : this.normalAt(movingTip.position);
+          setTipOrientation(movingTip, tangent, headNormal);
+          const tail = animation.end === 1 ? entry.tip : entry.tail;
+          animation.extended.atDistance(distance, tail.position);
+          if (entry.otherTip) {
+            const backwards = animation.extended.atDistance(distance + 0.035).sub(tail.position).negate().normalize();
+            setTipOrientation(tail, backwards, distance > animation.surfaceLength ? animation.finalNormal : this.normalAt(tail.position));
+          }
         }
-      } else {
-        const distance = animation.distance * (t * t * (3 - 2 * t));
-        const slice = new WindowCurve(animation.extended, distance, animation.length);
-        entry.line.geometry.dispose(); entry.line.geometry = new THREE.TubeGeometry(slice, 48, 0.037, 7, false);
-        const movingTip = animation.end === 1 ? entry.otherTip : entry.tip;
-        const headDistance = distance + animation.length;
-        animation.extended.atDistance(headDistance, movingTip.position);
-        const tangent = animation.extended.atDistance(headDistance + 0.035).sub(animation.extended.atDistance(headDistance - 0.035)).normalize();
-        const headNormal = headDistance > animation.surfaceLength ? animation.finalNormal : this.normalAt(movingTip.position);
-        setTipOrientation(movingTip, tangent, headNormal);
-        const tail = animation.end === 1 ? entry.tip : entry.tail;
-        animation.extended.atDistance(distance, tail.position);
-        if (entry.otherTip) {
-          const backwards = animation.extended.atDistance(distance + 0.035).sub(tail.position).negate().normalize();
-          setTipOrientation(tail, backwards, distance > animation.surfaceLength ? animation.finalNormal : this.normalAt(tail.position));
-        }
-      }
-      const opacity = animation.updatedArrow ? 1 : 1 - Math.max(0, (t - 0.7) / 0.3);
-      entry.material.opacity = entry.tip.material.opacity = opacity;
-      if (entry.otherTip) entry.otherTip.material.opacity = opacity;
-      if (t === 1) {
-        this.disposeArrow(entry); this.meshes.delete(id); this.animations.delete(id);
-        if (animation.updatedArrow) this.addArrow(animation.updatedArrow);
-        animation.onDone?.();
+        const opacity = animation.updatedArrow ? 1 : 1 - Math.max(0, (t - 0.7) / 0.3);
+        entry.material.opacity = entry.tip.material.opacity = opacity;
+        if (entry.otherTip) entry.otherTip.material.opacity = opacity;
+      } catch (error) {
+        // A failed visual frame must not freeze the already-committed move.
+        console.error('Arrow animation could not continue; restoring its final state.', error);
+        this.finishArrow(id, animation);
       }
     }
     if (this.effects.length) {

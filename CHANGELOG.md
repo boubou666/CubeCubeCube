@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- 38 distinct circle-parking layouts with dependent groups, opposite-head choices, and coordinated forks; later tiers require up to seven parking moves.
+- Stateful hints for generated parking groups and a dedicated circle challenge throughout the endless journey.
 - Pressure buttons that pause arrowheads and hold matching gates open until the head leaves.
 - Fixed quarter-turn deflectors and alternating deflectors that reverse after a successful head passage; only arrows operate them.
 - Arrow-triggered rotating upper sections that transport arrows, tiles, and colored ridge connections.
@@ -18,6 +20,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 
+- Movement locks left behind by missing arrow meshes or failed animation frames. All arrow types finish or restore their committed state before unlocking a mechanism level.
+- Pressure-button feedback for forks parked by their second head, and misleading wait messages on deadlocked boards.
+- Active saved puzzles retain their original generator while newly started puzzles use the richer parking layouts.
 - Arrows ignoring obstacles on the same face beyond a tunnel opening. Physical exit trajectories now check arrow bodies across gaps, at their actual 3D depth.
 - Generation accepting paths with blocked flights across gaps.
 
