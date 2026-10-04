@@ -1,5 +1,5 @@
 import './image-style.css';
-import { IMAGE_DIFFICULTIES, imageGrid, ImagePuzzleGame } from './image-puzzle.js';
+import { IMAGE_DIFFICULTIES, MIN_IMAGE_ARROW_CELLS, imageGrid, ImagePuzzleGame } from './image-puzzle.js';
 import { ImageScene } from './image-scene.js';
 import { readImageSave, writeImageSave } from './image-storage.js';
 
@@ -190,7 +190,7 @@ function generate() {
     game = new ImagePuzzleGame(data.level); active = { ...record, level: data.level }; selected = null;
     scene.load(game, image); $('#puzzle-title').textContent = source.name.replace(/\.[a-z\d]+$/i, '');
     $('#puzzle-settings').textContent = `${IMAGE_DIFFICULTIES[difficulty].label} · ${detail} detail`;
-    sourceStatus('Ready. Every visible image cell has a place in the puzzle.'); status('Tap an arrow with a clear path to the edge.'); update(); persist();
+    sourceStatus('Ready. Longer arrows, fewer pieces to clear.'); status('Tap an arrow with a clear path to the edge.'); update(); persist();
   };
   task.onerror = () => { if (worker === task) { cancelGeneration(); sourceStatus('The puzzle could not be generated. Try a softer detail setting.', true); } };
   task.postMessage({ ...grid, pixels, difficulty, detail, variation }, [pixels.buffer]);
@@ -257,6 +257,7 @@ async function boot() {
       if (!restored || source !== restored) return;
       crop = saved.crop; variation = saved.variation; $('#image-difficulty').value = saved.difficulty; $('#image-detail').value = saved.detail; drawCrop();
       document.querySelectorAll('[data-crop]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.crop === 'whole' && crop.x === 0 && crop.y === 0 && crop.w === 1 && crop.h === 1)));
+      if (saved.level.arrows.some(a => a.cells.length < MIN_IMAGE_ARROW_CELLS)) { generate(); return; }
       game = new ImagePuzzleGame(saved.level, saved.history); active = saved; scene.load(game, cropCanvas());
       $('#puzzle-title').textContent = source.name.replace(/\.[a-z\d]+$/i, ''); $('#puzzle-settings').textContent = `${IMAGE_DIFFICULTIES[saved.difficulty].label} · ${saved.detail} detail`;
       update(); status('Your picture is right where you left it.'); sourceStatus('Restored from this device. Choose a new crop whenever you like.'); return;

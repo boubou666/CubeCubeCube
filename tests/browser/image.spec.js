@@ -9,6 +9,8 @@ test.beforeEach(async ({ page }) => {
 test('sample is a multicoloured puzzle; pointer blockers, hints, undo, restart and reload work', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const level = await page.evaluate(() => window.__pictureDebug.game.level), blocked = level.arrows.find(a => imageBlockers(level, a).length);
+  expect(level.arrows.every(a => a.cells.length >= 5)).toBe(true);
+  expect(level.arrows.length).toBeLessThan(160);
   expect(level.arrows.some(a => new Set(a.colours.map(c => c.join(','))).size > 1)).toBe(true);
   const head = await page.evaluate(id => window.__pictureDebug.scene.screenPoint(id), blocked.id);
   await page.mouse.click(head.x, head.y); await expect(page.locator('#play-status')).toContainText('in the way');
@@ -26,6 +28,38 @@ test('sample is a multicoloured puzzle; pointer blockers, hints, undo, restart a
   await page.locator('#show-original').click();
   await mkdir('.local', { recursive: true }); await page.screenshot({ path: '.local/picture-desktop.png', fullPage: true });
   expect(errors).toEqual([]);
+});
+
+test('legacy tiny-arrow saves regenerate long paths while retaining the image and crop', async ({ page }) => {
+  await page.locator('#image-file').setInputFiles({ name: 'Retained hills.svg', mimeType: 'image/svg+xml', buffer: await readFile('public/sample-landscape.svg') });
+  await page.getByRole('button', { name: 'Square', exact: true }).click();
+  await page.locator('#image-detail').selectOption('soft'); await page.locator('#create-image-puzzle').click();
+  await page.waitForFunction(() => !window.__pictureDebug.worker && window.__pictureDebug.game.level.detail === 'soft');
+  const crop = await page.evaluate(() => window.__pictureDebug.crop);
+  await page.evaluate(async () => {
+    await window.__pictureDebug.saving;
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('cube-image-puzzles', 1);
+      request.onsuccess = () => {
+        const db = request.result, transaction = db.transaction('puzzles', 'readwrite'), store = transaction.objectStore('puzzles'), read = store.get('active');
+        read.onsuccess = () => {
+          const record = read.result;
+          record.level = { version: 1, cols: 2, rows: 1, arrows: [{ id: 0, cells: [[0, 0], [1, 0]], direction: [1, 0], colours: [[20, 120, 90], [20, 120, 90]] }] };
+          record.history = [0]; store.put(record, 'active');
+        };
+        transaction.oncomplete = () => { db.close(); resolve(); }; transaction.onerror = reject;
+      };
+    });
+  });
+  await page.reload(); await page.waitForFunction(() => Boolean(window.__pictureDebug?.game) && !window.__pictureDebug.worker);
+  await expect(page.locator('#puzzle-title')).toHaveText('Retained hills');
+  expect(await page.evaluate(() => window.__pictureDebug.crop)).toEqual(crop);
+  expect(await page.evaluate(() => window.__pictureDebug.game.level.arrows.every(a => a.cells.length >= 5))).toBe(true);
+  expect(await page.evaluate(() => window.__pictureDebug.game.history)).toEqual([]);
+  await page.evaluate(() => window.__pictureDebug.saving);
+  const arrows = await page.evaluate(() => window.__pictureDebug.game.level.arrows);
+  await page.reload(); await page.waitForFunction(() => Boolean(window.__pictureDebug?.game));
+  expect(await page.evaluate(() => window.__pictureDebug.game.level.arrows)).toEqual(arrows);
 });
 test('uploaded images, preset and manual crops, settings and shuffled paths generate playable boards', async ({ page }) => {
   const data = await readFile('public/sample-landscape.svg');

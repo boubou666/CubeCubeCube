@@ -7,10 +7,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- 2D picture puzzles now use arrows of at least five cells, with longer target paths and leftover fragments absorbed into existing bodies where possible. Unusable fragments stay empty instead of becoming tiny arrows.
+- Saved 2D boards containing short arrows regenerate with the longer paths, keeping their source image, crop, and settings.
+
 ### Added
 
 - Separate 2D picture puzzles: upload, paste, drop, or import a CORS-enabled direct image URL, then crop and generate a playable image.
-- Pixel-sampled colours along each arrow, colour-aware path placement, complete visible-cell coverage, and guaranteed solutions by forward peeling.
+- Pixel-sampled colours along each arrow, colour-aware path placement, and guaranteed solutions by forward peeling.
 - Three difficulty and detail settings, alternate seeded arrangements, original-image comparison, zoom/pan, keyboard hints, undo, restart, and completion.
 - Local image processing in a Web Worker and separate IndexedDB image/progress saves; the cube journey stays independent.
 - 38 distinct circle-parking layouts with dependent groups, opposite-head choices, and coordinated forks; later tiers require up to seven parking moves.

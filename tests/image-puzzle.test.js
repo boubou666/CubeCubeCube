@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateImagePuzzle, ImagePuzzleGame, imageGrid, imageColours, imageBlockers, validImageLevel } from '../src/image-puzzle.js';
+import { generateImagePuzzle, MIN_IMAGE_ARROW_CELLS, ImagePuzzleGame, imageGrid, imageColours, imageBlockers, validImageLevel } from '../src/image-puzzle.js';
 
 function pixels(cols, rows, transparent = false) {
   return Uint8ClampedArray.from({ length: cols * rows * 4 }, (_, i) => {
@@ -8,13 +8,16 @@ function pixels(cols, rows, transparent = false) {
     return i % 4 === 3 ? transparent && (x + y) % 7 === 0 ? 0 : 255 : i % 4 === 0 ? x * 255 / cols : i % 4 === 1 ? y * 255 / rows : 180;
   });
 }
-test('flat image puzzles cover every visible cell once, sample its colours, and have complete solutions', () => {
+test('flat image puzzles use long paths with sampled colours and have complete solutions', () => {
   for (const [cols, rows] of [[4, 4], [22, 18], [34, 34], [4, 72], [72, 4], [46, 52]]) {
     for (const difficulty of ['gentle', 'thoughtful', 'tangled']) {
       const rgba = pixels(cols, rows, true), colours = imageColours(rgba);
       const level = generateImagePuzzle({ cols, rows, pixels: rgba, difficulty }), seen = new Set(), game = new ImagePuzzleGame(level);
       assert.equal(validImageLevel(level), true);
       for (const arrow of level.arrows) {
+        assert.ok(arrow.cells.length >= MIN_IMAGE_ARROW_CELLS);
+        const head = arrow.cells.at(-1), neck = arrow.cells.at(-2);
+        assert.deepEqual([head[0] - neck[0], head[1] - neck[1]], arrow.direction);
         for (const [i, [x, y]] of arrow.cells.entries()) {
           const id = y * cols + x;
           assert.ok(!seen.has(id)); seen.add(id); assert.ok(rgba[id * 4 + 3] >= 24);
@@ -23,7 +26,10 @@ test('flat image puzzles cover every visible cell once, sample its colours, and 
         }
         assert.ok(!imageBlockers(level, arrow).includes(arrow.id), 'an arrow cannot block itself');
       }
-      assert.equal(seen.size, Array.from(rgba).filter((v, i) => i % 4 === 3 && v >= 24).length);
+      const visible = Array.from(rgba).filter((v, i) => i % 4 === 3 && v >= 24).length;
+      assert.equal(seen.size, level.stats.pixels);
+      assert.equal(seen.size + level.stats.skippedPixels, visible);
+      assert.ok(seen.size >= visible * 0.6, 'fragmented images retain most visible cells');
       for (const id of level.solution) assert.equal(game.release(id).status, 'removed');
       assert.equal(game.remaining, 0);
     }
@@ -44,9 +50,30 @@ test('settings and image seeds are deterministic; rearrangements change the puzz
   assert.deepEqual(generateImagePuzzle(input), generateImagePuzzle(input));
   assert.notDeepEqual(generateImagePuzzle(input).arrows, generateImagePuzzle({ ...input, variation: 1 }).arrows);
   const flat = new Uint8ClampedArray(34 * 34 * 4).fill(255);
-  const gentle = generateImagePuzzle({ cols: 34, rows: 34, pixels: flat, difficulty: 'gentle' });
-  const tangled = generateImagePuzzle({ cols: 34, rows: 34, pixels: flat, difficulty: 'tangled' });
-  assert.ok(tangled.stats.depth > gentle.stats.depth); assert.ok(tangled.stats.openingMoves < gentle.stats.openingMoves);
+  const samples = difficulty => Array.from({ length: 5 }, (_, variation) => generateImagePuzzle({ cols: 34, rows: 34, pixels: flat, difficulty, variation }));
+  const gentle = samples('gentle'), tangled = samples('tangled');
+  const total = (levels, key) => levels.reduce((n, l) => n + l.stats[key], 0);
+  assert.ok(total(tangled, 'depth') > total(gentle, 'depth'));
+  assert.ok(total(tangled, 'openingMoves') < total(gentle, 'openingMoves'));
+  assert.ok(total(tangled, 'arrows') < total(gentle, 'arrows'));
+  assert.ok([...gentle, ...tangled].every(l => l.stats.pixels >= flat.length / 4 * 0.9));
+});
+
+test('short transparent islands never turn into tiny arrows, across settings and seeds', () => {
+  const cols = 22, rows = 18, rgba = new Uint8ClampedArray(cols * rows * 4);
+  const paint = (x, y) => rgba.set([20, 120, 90, 255], (y * cols + x) * 4);
+  for (let y = 4; y < 16; y++) for (let x = 4; x < 20; x++) paint(x, y);
+  paint(0, 0); paint(0, 1); paint(1, 1); // Three-cell disconnected island.
+  for (const difficulty of ['gentle', 'thoughtful', 'tangled']) for (let variation = 0; variation < 8; variation++) {
+    const level = generateImagePuzzle({ cols, rows, pixels: rgba, difficulty, variation });
+    assert.equal(validImageLevel(level), true);
+    assert.ok(level.arrows.every(a => a.cells.length >= MIN_IMAGE_ARROW_CELLS));
+    assert.ok(level.arrows.every(a => a.cells.every(([x, y]) => x >= 4 && y >= 4)));
+    const game = new ImagePuzzleGame(level);
+    for (const id of level.solution) assert.equal(game.release(id).status, 'removed');
+  }
+  const isolated = new Uint8ClampedArray(cols * rows * 4); isolated.set([20, 120, 90, 255], 0);
+  assert.throws(() => generateImagePuzzle({ cols, rows, pixels: isolated }), /fragmented.*longer arrows/);
 });
 test('grid resolution respects aspect, detail and bounds; transparent crops give an actionable error', () => {
   assert.deepEqual(imageGrid(640, 520, 'balanced'), { cols: 42, rows: 34 });
