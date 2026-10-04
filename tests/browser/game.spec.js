@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { LEVELS, createLevel, surfaceLayout } from '../../src/puzzle.js';
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/cube.html');
   await page.waitForFunction(() => Boolean(window.__cubeDebug));
 });
 

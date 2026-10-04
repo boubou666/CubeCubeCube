@@ -123,3 +123,4 @@ body { background: #f5f6f1; }
   .picture-footer > span:first-child { font-size: 11px; }
 }
 @media (max-width: 600px) { .picture-mode-link { font-size: 9px; padding: 8px 7px; } }
+@media (max-width: 480px) { .picture-header { flex-wrap: wrap; justify-content: center; } .picture-header nav { justify-content: center; width: 100%; } }

@@ -5,7 +5,7 @@ test('every arrow type unlocks on generated button levels', async ({ page }) => 
   page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => localStorage.setItem('cubecubecube.save.v1', JSON.stringify({ version: 4, generation: 2, index: 39 })));
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await page.goto('/cube.html');
   await page.waitForFunction(() => Boolean(window.__cubeDebug));
   for (const kind of ['ordinary', 'opposite', 'button']) {
     const move = await page.evaluate(async kind => {
@@ -45,7 +45,7 @@ test('every arrow type unlocks on generated button levels', async ({ page }) => 
 
 test('a failed animation releases the global lock and restores committed button state', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  await page.goto('/');
+  await page.goto('/cube.html');
   await page.waitForFunction(() => Boolean(window.__cubeDebug));
   await page.evaluate(async () => {
     const { createLevel } = await import('/src/puzzle.js');
@@ -76,7 +76,7 @@ test('a failed animation releases the global lock and restores committed button 
 
 test('a fork can hold a button with its second head and resume without a lock', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/cube.html');
   await page.waitForFunction(() => Boolean(window.__cubeDebug));
   await page.evaluate(() => {
     const { game, scene } = window.__cubeDebug, cell = (x, y) => ({ face: 'front', x, y });
@@ -96,7 +96,7 @@ test('a fork can hold a button with its second head and resume without a lock', 
 });
 
 test('orphaned and invalid animation records finish instead of locking every arrow', async ({ page }) => {
-  await page.goto('/'); await page.waitForFunction(() => Boolean(window.__cubeDebug));
+  await page.goto('/cube.html'); await page.waitForFunction(() => Boolean(window.__cubeDebug));
   for (const failure of ['missing-mesh', 'invalid-duration']) {
     await page.evaluate(async failure => {
       const { createLevel } = await import('/src/puzzle.js');
@@ -117,7 +117,7 @@ test('orphaned and invalid animation records finish instead of locking every arr
 
 test('hints complete dependent circle groups with three and seven required parks', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/');
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/cube.html');
   for (const index of [30, 102]) {
     await page.locator('#levels-button').click(); await page.locator('#puzzle-jump').fill(String(index + 1));
     await page.locator('#jump-form button').click(); await page.locator('#cube-canvas').focus();
