@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FACES, FACE_NAMES, DIRECTIONS, LEVELS, key, step, createLevel, solve, solveWithStops, blockerIds, availableArrows, availableMoves, travelRoute, arrowCells, surfaceLayout, exitHitsSolid, PuzzleGame } from '../src/puzzle.js';
+import { FACES, FACE_NAMES, DIRECTIONS, LEVELS, key, step, createLevel, solve, solveWithStops, blockerIds, availableArrows, availableMoves, travelRoute, arrowCells, surfaceLayout, exitHitsSolid, PuzzleGame, hasMechanisms } from '../src/puzzle.js';
 import { readSave, writeSave, SAVE_KEY } from '../src/storage.js';
 
 test('surface transitions are reciprocal on all twelve cube edges', () => {
@@ -60,10 +60,26 @@ test('a blocked tap preserves every arrow; removing its blocker opens the route'
   assert.equal(game.remaining, 18);
 });
 
+test('an ordinary hole edge still checks arrows across the gap in physical space', () => {
+  const size = { x: 6, y: 6, z: 4, hole: { x: [2, 3], y: [2, 3] } };
+  const cell = (x, y, face = 'front') => ({ face, x, y });
+  const arrow = { id: 0, cells: [cell(2, 0), cell(2, 1)], direction: [0, 1] };
+  const obstacle = { id: 1, cells: [cell(2, 5), cell(2, 4)], direction: [0, -1] };
+  const across = { id: 2, cells: [cell(1, 4), cell(2, 4), cell(3, 4)], direction: [1, 0] };
+  const behind = { id: 3, cells: [cell(2, 4, 'back'), cell(2, 5, 'back')], direction: [0, 1] };
+  assert.deepEqual(blockerIds(arrow, [arrow, obstacle], new Set(), size), [1]);
+  assert.deepEqual(blockerIds(arrow, [arrow, across], new Set(), size), [2]);
+  assert.deepEqual(blockerIds(arrow, [arrow, obstacle], new Set([1]), size), []);
+  assert.deepEqual(blockerIds(arrow, [arrow, behind], new Set(), size), [], 'screen overlap at another depth must not block');
+  const game = new PuzzleGame(); game.level = { size, arrows: [arrow, obstacle], bridges: [] };
+  const before = structuredClone(game.level);
+  assert.equal(game.tryRemove(0).status, 'blocked'); assert.deepEqual(game.level, before);
+});
+
 test('choosing any available arrow preserves solvability', () => {
   for (let index = 0; index < LEVELS.length; index++) {
     const level = createLevel(index), removed = new Set();
-    if (level.circles?.length) continue;
+    if (level.circles?.length || hasMechanisms(level)) continue;
     while (removed.size < level.arrows.length) {
       const options = availableArrows(level, removed);
       assert.ok(options.length > 0);

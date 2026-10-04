@@ -1,4 +1,4 @@
-import { LEVELS, levelMeta, isLevelIndex, PuzzleGame, availableArrows, availableMoves, solveWithStops } from './puzzle.js';
+import { LEVELS, FAMILIES, levelMeta, isLevelIndex, PuzzleGame, availableArrows, availableMoves, solveWithStops, hasMechanisms } from './puzzle.js';
 import { readSave, writeSave, hasCompleted, completedCount, markCompleted } from './storage.js';
 import { CubeScene } from './scene.js';
 
@@ -19,10 +19,11 @@ const paths = {
 function icon(name, cls = '') { return `<svg class="icon ${cls}" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`; }
 const cubeMark = `<svg viewBox="0 0 48 54" fill="none" aria-hidden="true"><path d="m24 3 20 11v25L24 51 4 39V14Z" fill="currentColor"/><path d="m4 14 20 12 20-12M24 26v25" stroke="var(--page)" stroke-width="1.6"/><path d="m14 8 20 12v25M34 8 14 20v25M4 26l20 12 20-12" stroke="var(--page)" stroke-width="1.3"/></svg>`;
 const save = readSave();
-const game = new PuzzleGame(save.index, save.removed, save.moves);
+const game = new PuzzleGame(save.index, save.removed, save.moves, save.generation);
 let scene, selectedId = null, selectedEnd = 0, winTimer = null, toastTimer = null, revision = 0, audioContext, winShown = false;
 let currentHelp = 0;
 let endlessPage = 0;
+let collectionFamily = 'All';
 
 document.querySelector('#app').innerHTML = `
   <header class="topbar">
@@ -84,6 +85,7 @@ document.querySelector('#app').innerHTML = `
     <div class="modal-heading"><div><span class="eyebrow">ENDLESS LITTLE ESCAPES</span><h2>The collection</h2></div><button class="icon-button close-dialog" aria-label="Close collection">${icon('close')}</button></div>
     <p class="modal-description">${LEVELS.length} opening puzzles, then an endless journey. Take all the time you need.</p>
     <button id="endless-button" class="primary-button">Continue the journey ${icon('arrow')}</button>
+    <div id="family-filters" class="family-filters" role="group" aria-label="Opening puzzle families"></div>
     <div id="level-grid" class="level-grid"></div>
     <section class="endless-section" aria-label="Endless puzzles">
       <div class="endless-heading"><div><span class="eyebrow">A LITTLE DEEPER, EACH TIME</span><h3>The endless journey</h3><p>Bigger boards. More connections. New perspectives.</p></div><span class="infinity-mark" aria-hidden="true">∞</span></div>
@@ -97,7 +99,7 @@ document.querySelector('#app').innerHTML = `
     <div class="modal-heading"><div><span class="eyebrow">A LITTLE GUIDANCE</span><h2>Make room. Let go.</h2></div><button class="icon-button close-dialog" aria-label="Close how to play">${icon('close')}</button></div>
     <div class="help-illustration" aria-hidden="true"><svg viewBox="0 0 300 94"><path d="M34 68V28h78v38h60V28h75"/><path d="m232 13 16 15-16 15"/><circle cx="34" cy="68" r="4"/></svg><span>Follow the path, all the way to its head.</span></div>
     <ol class="help-steps"><li><strong>Turn it around.</strong><p>Drag with your mouse or finger to see all six sides. Scroll or pinch to zoom.</p></li><li><strong>Find a clear way out.</strong><p>Tap an arrow. It slides in the direction its head points, then flies off the edge. Another arrow in front of it? Clear that one first.</p></li><li><strong>Untangle the whole cube.</strong><p>Paths can wrap around corners. Keep turning, keep clearing. There’s no timer, and mistakes cost nothing.</p></li></ol>
-    <div class="extra-rules"><p><strong>Colored ridges</strong> carry an arrow onto the next face. Follow its route across every connected side.</p><p><strong>Opposite heads</strong> give you a choice. Tap the head you want to lead; the entire arrow follows.</p><p><strong>Forks</strong> send both heads along their own routes at once. Both paths must be clear before the arrow can move.</p><p><strong>Small circles</strong> pause an arrow when its head reaches them. The arrow stays on the cube, opening or blocking different paths. Tap again to continue.</p></div>
+    <div class="extra-rules"><p><strong>Colored ridges</strong> carry an arrow onto the next face. Follow its route across every connected side.</p><p><strong>Opposite heads</strong> give you a choice. Tap the head you want to lead; the entire arrow follows.</p><p><strong>Forks</strong> send both heads along their own routes at once. Both paths must be clear before the arrow can move.</p><p><strong>Small circles</strong> pause an arrow when its head reaches them. The arrow stays on the cube, opening or blocking different paths. Tap again to continue.</p><p><strong>Pressure buttons</strong> pause a head and open gates of the same color. The gates close as soon as that head leaves. Keep the button occupied while another arrow passes.</p><p><strong>Bent tiles</strong> turn a passing head a quarter turn left or right. Blue tiles stay fixed. Striped purple tiles reverse their turn after each head passes successfully. Tap arrows to interact with them.</p><p><strong>Blue spirals</strong> pause a head and turn the upper section a quarter turn, carrying its arrows, tiles, and colored ridges. An arrow stretched across the section seam must move clear first. Tap the parked arrow again to continue.</p></div>
     <div class="keyboard-guide"><span>Keyboard shortcuts</span><p><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> rotate · <kbd>H</kbd> hint · <kbd>Enter</kbd> release hint · <kbd>U</kbd> undo · <kbd>R</kbd> restart</p></div>
     <button class="primary-button close-dialog">A little clearer ${icon('arrow')}</button>
   </dialog>
@@ -117,6 +119,7 @@ document.querySelector('#app').innerHTML = `
 const $ = selector => document.querySelector(selector);
 function persist() {
   save.index = game.index; save.removed = [...game.removed]; save.moves = game.saveMoves;
+  save.generation = game.generation;
   if (game.index >= LEVELS.length) save.frontier = Math.max(save.frontier, game.index);
   const ok = writeSave(save);
   if (!ok && !persist.warned) { persist.warned = true; toast('Your browser cannot save progress. You can still play.'); }
@@ -135,6 +138,9 @@ function renderUI() {
   if (game.level.arrows.some(a => a.twoHeads)) mechanics.push('Tap a head to choose');
   if (game.level.arrows.some(a => a.branch)) mechanics.push('Both head paths must be clear');
   if (game.level.circles?.length) mechanics.push('Circle = pause');
+  if (game.level.buttons?.length) mechanics.push('Hold button → matching gate');
+  if (game.level.deflectors?.length) mechanics.push(game.level.deflectors.some(d => d.alternating) ? 'Striped turn switches after passage' : 'Bent tile = quarter turn');
+  if (game.level.rotors?.length) mechanics.push('Spiral → rotate upper section');
   if (typeof game.level.size === 'object') mechanics.push(game.level.size.hole ? 'Inner walls' : game.level.size.terrace ? 'Treads & risers' : 'Unequal faces');
   $('#mechanic-notice').hidden = mechanics.length === 0;
   $('#mechanic-notice').textContent = mechanics.join(' · ');
@@ -169,10 +175,11 @@ function sound(kind) {
 }
 
 function removeArrow(id, end = 0) {
+  if (hasMechanisms(game.level) && scene.busy) { toast('Let the mechanisms settle, then tap an arrow.', 1800); return; }
   if (scene.animations.has(id)) { toast('Let the arrow settle, then tap again.', 1600); return; }
   const result = game.tryRemove(id, end);
   if (result.status === 'blocked') {
-    scene.blocked(id, result.blockers); sound('blocked'); toast(result.solid ? 'The solid blocks this exit.' : result.loop ? 'This route loops around the cube. Clear another arrow.' : result.arrow?.branch ? 'Both head paths must be clear. Clear the arrows ahead first.' : 'Something’s in the way. Clear the arrow ahead first.');
+    scene.blocked(id, result.blockers); sound('blocked'); toast(result.rotationBlocked ? 'An arrow crosses the section seam. Move it clear before turning.' : result.gate ? 'The gate is closed. Park a head on its matching button.' : result.solid ? 'The solid blocks this exit.' : result.loop ? 'This route loops around the cube. Clear another arrow.' : result.conflict ? 'The two heads would collide. Both routes must be clear.' : result.arrow?.branch ? 'Both head paths must be clear. Clear the arrows ahead first.' : 'Something’s in the way. Clear the arrow ahead first.');
     return;
   }
   if (result.status === 'ignored') return;
@@ -182,13 +189,22 @@ function removeArrow(id, end = 0) {
     renderUI(); persist();
   }
   const thisRevision = revision;
-  scene.remove(id, () => {
+  if (result.mechanisms) scene.releaseButton(id);
+  const finished = () => {
     if (thisRevision === revision && game.remaining === 0) {
       clearTimeout(winTimer);
       winTimer = setTimeout(() => { if (game.remaining === 0 && thisRevision === revision) showWin(); }, 180);
     }
-  }, result.route, result.end, result.updatedArrow, result.routes);
-  if (result.status === 'moved') toast('Paused on the circle. Tap this arrow again to continue.', 3500);
+  };
+  scene.remove(id, () => {
+    if (thisRevision !== revision) return;
+    if (result.mechanisms) {
+      const refresh = () => { if (thisRevision !== revision) return; scene.load(game.level, game.removed, save.theme); finished(); };
+      if (result.rotations.length) scene.rotateSection(result.rotations[0], result.rotations.length, refresh);
+      else refresh();
+    } else finished();
+  }, result.route, result.end, result.mechanisms ? result.parkedArrow : result.updatedArrow, result.routes);
+  if (result.status === 'moved') toast(result.rotations?.length ? 'The upper section is turning. Its arrows move with it.' : result.route?.trigger ? 'Paused on the spiral.' : game.level.buttons?.some(b => result.updatedArrow?.cells.at(-1)?.face === b.face && result.updatedArrow.cells.at(-1).x === b.x && result.updatedArrow.cells.at(-1).y === b.y) ? 'Button held. The matching gate is open.' : 'Paused on the circle. Tap this arrow again to continue.', 3500);
   else if (game.remaining && game.remaining % 6 === 0) toast(['A little more room.', 'Things are opening up.', 'One step at a time.'][Math.floor(game.remaining / 6) % 3], 1500);
 }
 
@@ -198,8 +214,9 @@ function undo() {
   selectedId = null; scene.load(game.level, game.removed, save.theme); renderUI(); persist(); toast('A little step back.', 1600);
 }
 function hint() {
+  if (hasMechanisms(game.level) && scene.busy) { toast('Let the mechanisms settle for a moment.', 1600); return; }
   let moves = availableMoves(game.level, game.removed).filter(m => !scene.animations.has(m.id));
-  if (game.level.circles?.length && !game.level.independentStops) {
+  if (hasMechanisms(game.level) || (game.level.circles?.length && !game.level.independentStops)) {
     const solution = solveWithStops(game.level, game.removed);
     if (solution?.length && !scene.animations.has(solution[0].id)) moves = [solution[0]];
   }
@@ -213,11 +230,13 @@ function loadLevel(index, restart = false) {
   if (index === game.index && !restart) return;
   revision++; winShown = false; clearTimeout(winTimer); clearTimeout(toastTimer); $('#toast').classList.remove('visible');
   closeDialog($('#win-dialog')); selectedId = null;
-  game.load(index); scene.load(game.level, game.removed, save.theme); scene.resetView(); renderUI(); persist();
+  game.load(index, [], [], restart ? game.generation : 2); scene.load(game.level, game.removed, save.theme); scene.resetView(); renderUI(); persist();
   if (restart) toast('A fresh start.', 1600);
 }
 function renderCollection() {
-  $('#level-grid').innerHTML = LEVELS.map((level, i) => `<button class="level-card ${save.completed.includes(i) ? 'is-complete' : ''} ${game.index === i ? 'is-current' : ''}" data-level="${i}" ${game.index === i ? 'aria-current="true"' : ''}><span class="level-card-top"><span>${String(i + 1).padStart(2, '0')}</span>${save.completed.includes(i) ? icon('check') : i === game.index ? '<span class="current-tag">Playing</span>' : ''}</span><span class="mini-cube">${cubeMark}</span><strong>${level.title}</strong><span class="level-card-difficulty">${level.difficulty}</span></button>`).join('');
+  $('#family-filters').innerHTML = ['All', ...FAMILIES].map(f => `<button class="family-filter" aria-pressed="${f === collectionFamily}" data-family="${f}">${f}</button>`).join('');
+  $('#family-filters').querySelectorAll('button').forEach(button => { button.onclick = () => { collectionFamily = button.dataset.family; renderCollection(); }; });
+  $('#level-grid').innerHTML = LEVELS.map((level, i) => collectionFamily !== 'All' && level.family !== collectionFamily ? '' : `<button class="level-card ${save.completed.includes(i) ? 'is-complete' : ''} ${game.index === i ? 'is-current' : ''}" data-level="${i}" ${game.index === i ? 'aria-current="true"' : ''}><span class="level-card-top"><span>${String(i + 1).padStart(2, '0')}</span>${save.completed.includes(i) ? icon('check') : i === game.index ? '<span class="current-tag">Playing</span>' : ''}</span><span class="mini-cube">${cubeMark}</span><strong>${level.title}</strong><span class="level-card-difficulty">${level.family} · ${level.difficulty}</span></button>`).join('');
   $('#level-grid').querySelectorAll('[data-level]').forEach(button => button.addEventListener('click', () => { loadLevel(Number(button.dataset.level)); closeDialog($('#levels-dialog')); }));
   const resume = game.index >= LEVELS.length && game.remaining ? game.index : save.frontier;
   $('#endless-button').innerHTML = `${resume === LEVELS.length ? 'Start' : 'Continue'} the journey · Puzzle ${resume + 1} ${icon('arrow')}`;
@@ -233,7 +252,7 @@ function renderEndlessPage() {
   $('#endless-next').disabled = !isLevelIndex(first + 12);
   $('#endless-grid').innerHTML = indices.map(i => {
     const meta = levelMeta(i), complete = hasCompleted(save, i);
-    return `<button class="level-card ${complete ? 'is-complete' : ''} ${game.index === i ? 'is-current' : ''}" data-level="${i}" ${game.index === i ? 'aria-current="true"' : ''}><span class="level-card-top"><span>${i + 1}</span>${complete ? icon('check') : i === game.index ? '<span class="current-tag">Playing</span>' : ''}</span><span class="mini-cube">${cubeMark}</span><strong>${meta.shape}</strong><span class="level-card-difficulty">Tier ${meta.tier}</span></button>`;
+    return `<button class="level-card ${complete ? 'is-complete' : ''} ${game.index === i ? 'is-current' : ''}" data-level="${i}" ${game.index === i ? 'aria-current="true"' : ''}><span class="level-card-top"><span>${i + 1}</span>${complete ? icon('check') : i === game.index ? '<span class="current-tag">Playing</span>' : ''}</span><span class="mini-cube">${cubeMark}</span><strong>${meta.family}</strong><span class="level-card-difficulty">Tier ${meta.tier} · ${meta.shape}</span></button>`;
   }).join('');
   $('#endless-grid').querySelectorAll('[data-level]').forEach(button => button.onclick = () => { loadLevel(Number(button.dataset.level)); closeDialog($('#levels-dialog')); });
   $('#puzzle-jump').value = first + 1;

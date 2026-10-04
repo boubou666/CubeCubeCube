@@ -1,4 +1,6 @@
 // Discrete surface rules. This module deliberately has no renderer or DOM dependencies.
+import { hasMechanisms, analyzeMechanismMove, solveMechanisms, mechanismPuzzle, inSection } from './mechanics.js';
+export { hasMechanisms } from './mechanics.js';
 export const FACES = {
   front: { normal: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0] },
   right: { normal: [1, 0, 0], u: [0, 0, -1], v: [0, 1, 0] },
@@ -159,10 +161,52 @@ export function exitCells(arrow, size, bridges = [], end = 0, circles = []) {
   return travelRoute(arrow, size, bridges, end, circles).states.slice(1).map(s => s.cell);
 }
 
+// Leaving a surface is still a physical flight. A tunnel can interrupt the cell
+// grid while another arrow remains directly ahead, on the far side of the gap.
+function rayTouchesSegment(origin, direction, a, b, radius = 0.105) {
+  const v = b.map((n, i) => n - a[i]), w = origin.map((n, i) => n - a[i]);
+  const c = dot(v, v), uv = dot(direction, v), uw = dot(direction, w), vw = dot(v, w);
+  const candidates = [0, 1];
+  if (c > 1e-10) candidates.push(Math.max(0, Math.min(1, vw / c)));
+  const denominator = c - uv * uv;
+  if (denominator > 1e-10) {
+    const t = (vw - uv * uw) / denominator;
+    if (t >= 0 && t <= 1) candidates.push(t);
+  }
+  return candidates.some(t => {
+    const p = a.map((n, i) => n + v[i] * t);
+    const distance = Math.max(0, dot(p.map((n, i) => n - origin[i]), direction));
+    return p.reduce((sum, n, i) => sum + (n - origin[i] - direction[i] * distance) ** 2, 0) < radius ** 2;
+  });
+}
+
+const flightGeometry = new WeakMap();
+export function flightBlockerIds(route, arrows, removed, size) {
+  if (route.stopped || route.loop || route.solid || typeof size === 'number' || !(size.hole || size.terrace || size.heights)) return [];
+  const last = route.states.at(-1), normal = FACES[last.cell.face].normal;
+  const direction = worldDirection(last.cell.face, last.direction);
+  const pitch = surfaceLayout(size).pitch;
+  const origin = worldPoint(last.cell, size).map((n, i) => n + normal[i] * 0.055 + direction[i] * pitch * 0.5);
+  return arrows.filter(a => !removed.has(a.id) && [a, ...(a.branch ? [a.branch] : [])].some(part => {
+    if (part.exited) return false;
+    let cached = flightGeometry.get(part.cells);
+    if (!cached || cached.size !== size) {
+      cached = { size, points: part.cells.map(cell => worldPoint(cell, size).map((n, i) => n + FACES[cell.face].normal[i] * 0.055)) };
+      flightGeometry.set(part.cells, cached);
+    }
+    const points = cached.points;
+    return points.some((point, i) => rayTouchesSegment(origin, direction, point, points[i + 1] ?? point));
+  })).map(a => a.id);
+}
+
 export function blockerIds(arrow, arrows, removed, size, bridges = [], end = 0, circles = []) {
   const ends = arrow.branch ? [0, 1].filter(i => !(i ? arrow.branch : arrow).exited) : [end];
-  const ahead = new Set(ends.flatMap(i => exitCells(arrow, size, bridges, i, circles)).map(key));
-  return arrows.filter(a => !removed.has(a.id) && arrowCells(a).some(c => ahead.has(key(c)))).map(a => a.id);
+  const routes = ends.map(i => travelRoute(arrow, size, bridges, i, circles));
+  const ahead = new Set(routes.flatMap(r => r.states.slice(1)).map(s => key(s.cell)));
+  return [...new Set([
+    ...arrows.filter(a => !removed.has(a.id) && arrowCells(a).some(c => ahead.has(key(c)))).map(a => a.id),
+    ...routes.flatMap(route => flightBlockerIds(route, arrows, removed, size)),
+  ])];
 }
 
 // Forks have one move: both live heads must be able to advance together.
@@ -172,6 +216,8 @@ function movementRoutes(arrow, level, end) {
 }
 
 export function availableMoves(level, removed = new Set()) {
+  if (hasMechanisms(level)) return level.arrows.filter(a => !removed.has(a.id)).flatMap(arrow =>
+    (arrow.branch ? [arrow.exited ? 1 : 0] : headCount(arrow) === 2 ? [0, 1] : [0]).filter(end => analyzeMechanismMove(level, removed, arrow, end, true).status !== 'blocked').map(end => ({ id: arrow.id, end })));
   return level.arrows.filter(a => !removed.has(a.id)).flatMap(arrow => (arrow.branch ? [arrow.exited ? 1 : 0] : headCount(arrow) === 2 ? [0, 1] : [0]).filter(end =>
     !movementRoutes(arrow, level, end).some(route => route?.loop || route?.solid) && blockerIds(arrow, level.arrows, removed, level.size, level.bridges, end, level.circles).length === 0
   ).map(end => ({ id: arrow.id, end })));
@@ -183,6 +229,7 @@ export function availableArrows(level, removed = new Set()) {
 }
 
 export function solve(level, initial = new Set()) {
+  if (hasMechanisms(level)) return solveMechanisms(level, initial)?.map(m => m.id) ?? null;
   if (level.circles?.length) return solveWithStops(level, initial)?.map(m => m.id) ?? null;
   const removed = new Set(initial), order = [];
   while (removed.size < level.arrows.length) {
@@ -212,6 +259,7 @@ function advanceArrow(arrow, routes, end, size) {
 
 // Circle puzzles can change occupancy. Search board states, not just removal sets.
 export function solveWithStops(level, initial = new Set(), maxStates = 20000) {
+  if (hasMechanisms(level)) return solveMechanisms(level, initial, maxStates);
   // Generated circle pockets are isolated from the filler routes. Their small
   // parking cycles can be solved greedily without searching the whole large board.
   if (level.independentStops) {
@@ -293,6 +341,7 @@ export function generateLevel({ size, count, seed, maxLength = 6, wrap = true, b
     const candidate = { id: arrows.length, cells: [head], direction: [...direction] };
     const route = travelRoute(candidate, size, bridges);
     if (route.loop || route.solid) continue;
+    if (flightBlockerIds(route, arrows, new Set(), size).length) continue;
     const ahead = new Set(exitCells(candidate, size, bridges).map(key));
     if ([...ahead].some(k => occupied.has(k) || protectedCells.has(k))) continue;
     let cell = head, backwards = direction.map(v => -v);
@@ -318,6 +367,7 @@ export function generateLevel({ size, count, seed, maxLength = 6, wrap = true, b
       candidate.cells.unshift(cell); used.add(key(cell));
     }
     if (candidate.cells.length < 2) continue;
+    if (flightBlockerIds(route, [candidate], new Set(), size).length) continue;
     if (branches && candidate.cells.length >= 3 && rng() < branches) {
       const joint = candidate.cells[1 + Math.floor(rng() * (candidate.cells.length - 2))];
       const start = Math.floor(rng() * 4);
@@ -334,7 +384,7 @@ export function generateLevel({ size, count, seed, maxLength = 6, wrap = true, b
         candidate.branch = branch;
         const branchRoute = travelRoute(candidate, size, bridges, 1);
         const branchAhead = new Set(branchRoute.states.slice(1).map(s => key(s.cell)));
-        if (branchRoute.loop || branchRoute.solid || [...branchAhead].some(k => occupied.has(k) || protectedCells.has(k)) || arrowCells(candidate).some(c => branchAhead.has(key(c)))) {
+        if (branchRoute.loop || branchRoute.solid || flightBlockerIds(branchRoute, [...arrows, candidate], new Set(), size).length || flightBlockerIds(route, [candidate], new Set(), size).length || [...branchAhead].some(k => occupied.has(k) || protectedCells.has(k)) || arrowCells(candidate).some(c => branchAhead.has(key(c)))) {
           delete candidate.branch; continue;
         }
         break;
@@ -395,14 +445,24 @@ export const LEVELS = [
   { title: 'Different proportions', caption: 'A long face, a short face. The same rules, a new perspective.', difficulty: 'New shape', size: { x: 6, y: 4, z: 3 }, count: 22, seed: 10243, maxLength: 4, twoHeads: true },
   { title: 'Through the middle', caption: 'A hole through the cube. An amber ridge leads into its inner wall.', difficulty: 'New shape', size: { x: 6, y: 6, z: 4, hole: { x: [2, 3], y: [2, 3] } }, count: 28, seed: 12007, maxLength: 5, twoHeads: true, bridges: [{ faces: ['front', 'right@-1'], color: '#d89b54' }] },
   { title: 'Hidden terraces', caption: 'One connected shape, with stepped sections tucked into it. Follow every riser.', difficulty: 'New shape', size: { x: 6, y: 6, z: 6, terrace: { x: [0, 2], z: [3, 5], heights: [2, 3, 4] } }, count: 32, seed: 14797, maxLength: 5, twoHeads: true, bridges: [{ faces: ['front', 'top@-1'], color: '#d89b54' }] },
+  { title: 'Hold the door', caption: 'Park on the amber button. Keep the matching gate open until the winding arrow is through.', difficulty: 'New mechanic', family: 'Parking', size: 6, count: 2, tutorial: 'pressure' },
+  { title: 'A turn of events', caption: 'The bent tile turns a passing head left. Clear the arrow beyond the bend first.', difficulty: 'New mechanic', family: 'Deflection', size: 6, count: 2, tutorial: 'fixed' },
+  { title: 'One turn, then another', caption: 'A striped deflector switches between left and right after each passing head. Only arrows can change it.', difficulty: 'New mechanic', family: 'Deflection', size: 6, count: 3, tutorial: 'alternating' },
+  { title: 'A moving crown', caption: 'Park on the blue spiral. The upper section turns, carrying its arrows and colored ridges with it.', difficulty: 'New mechanic', family: 'Rotation', size: 6, count: 3, tutorial: 'rotation' },
+  { title: 'Working together', caption: 'An amber button holds the gate. A striped turn guides the winding arrow through it.', difficulty: 'Combined mechanics', family: 'Mixed', size: 6, count: 2, tutorial: 'mixed' },
 ];
+
+export const ORIGINAL_OPENING_COUNT = 23;
+export const NEW_OPENING_COUNT = LEVELS.length - ORIGINAL_OPENING_COUNT;
+export const FAMILIES = ['Foundations', 'Connections', 'Parking', 'Branches', 'Tunnels', 'Terraces', 'Deflection', 'Rotation', 'Mixed'];
+LEVELS.forEach((meta, index) => { meta.family ??= index === 21 ? 'Tunnels' : index === 22 ? 'Terraces' : index >= 18 && index <= 19 ? 'Branches' : index >= 16 && index <= 17 ? 'Parking' : index >= 12 && index <= 15 ? 'Connections' : 'Foundations'; });
 
 export const isLevelIndex = index => Number.isSafeInteger(index) && index >= 0 && index < Number.MAX_SAFE_INTEGER;
 const endlessCache = new Map();
 
 function seedFor(index, attempt = 0) {
   let hash = 2166136261;
-  for (const c of `endless-v1:${index}:${attempt}`) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  for (const c of `endless-v1:${index - NEW_OPENING_COUNT}:${attempt}`) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
   return hash >>> 0;
 }
 
@@ -426,9 +486,11 @@ export function levelMeta(index) {
   if (size.terrace && tier >= 3) connections[2] = ['front', `top@${size.terrace.heights[0] - side / 2}`];
   const bridges = connections.slice(0, Math.min(4, 1 + Math.floor(ordinal / 16))).map((faces, i) => ({ faces, color: ['#d89b54', '#b97e93', '#8aa99b', '#92a3ba'][i] }));
   const cells = surfaceLayout(size).cells.length;
+  const mechanism = variation === 3 && tier >= 2 ? 'pressure' : variation === 5 && tier >= 3 ? 'fixed' : variation === 1 && tier >= 4 ? 'alternating' : variation === 0 && tier >= 5 ? 'rotation' : variation === 7 && tier >= 6 ? 'mixed' : null;
+  const family = mechanism === 'pressure' ? 'Parking' : mechanism === 'rotation' ? 'Rotation' : mechanism === 'mixed' ? 'Mixed' : mechanism ? 'Deflection' : shape === 'Tunnel' ? 'Tunnels' : shape === 'Terraces' ? 'Terraces' : variation === 3 ? 'Parking' : variation === 1 ? 'Branches' : 'Connections';
   return {
     title: `Beyond the corners ${ordinal + 1}`, caption: 'A new puzzle, a little deeper. There is always another perspective.',
-    difficulty: `Tier ${tier} · ${shape}`, endless: true, ordinal, tier, shape, size,
+    difficulty: `Tier ${tier} · ${family}`, family, mechanism, endless: true, ordinal, tier, shape, size,
     count: Math.floor(cells * Math.min(0.225, 0.18 + ordinal * 0.0007)),
     maxLength: Math.min(11, 5 + Math.floor(ordinal / 12)), seed: seedFor(index), bridges,
     twoHeads: 0.12, branches: Math.min(0.35, 0.08 + ordinal * 0.003),
@@ -472,14 +534,25 @@ export function difficultyStats(level) {
   return { depth: Math.max(0, ...depths.values()), choices: availableArrows(level).length, forks: level.arrows.filter(a => a.branch).length };
 }
 
-function generateEndless(index) {
-  const meta = levelMeta(index), pockets = circlePockets(meta);
+function generateEndless(index, legacy = false) {
+  const meta = levelMeta(index), advanced = !legacy && meta.mechanism;
+  const special = advanced ? mechanismPuzzle(meta.mechanism, typeof meta.size === 'number' ? meta.size : meta.size.x, 'back') : null;
+  const pockets = advanced ? { ...special, reserved: [] } : circlePockets(meta);
+  if (advanced) {
+    // Keep each stateful teaching pocket independent of the large filler board.
+    // Reserve its face and every exit corridor; rotating crowns own the upper slab.
+    const layout = surfaceLayout(meta.size);
+    const controlled = new Set(special.arrows.flatMap(a => arrowCells(a).map(c => c.face)));
+    pockets.reserved = layout.cells.filter(c => controlled.has(c.face) || (special.rotors?.length && (c.face === 'right' || special.rotors.some(r => inSection(c, meta.size, r)))));
+  }
+  const controlled = new Set(special?.arrows.flatMap(a => arrowCells(a).map(c => c.face)) ?? []);
+  const generationMeta = { ...meta, bridges: advanced ? meta.bridges.filter(b => !b.faces.some(f => controlled.has(f))) : meta.bridges };
   let best = null, bestScore = -Infinity;
   // Select among deterministic candidates for fewer obvious opening moves and
   // deeper dependencies. Every candidate is solvable by reverse construction.
   for (let attempt = 0; attempt < 4; attempt++) {
     let level;
-    try { level = generateLevel({ ...meta, packed: true, count: meta.count - pockets.arrows.length, reserved: pockets.reserved, seed: seedFor(index, attempt) }); }
+    try { level = generateLevel({ ...generationMeta, packed: true, count: meta.count - pockets.arrows.length, reserved: pockets.reserved, seed: seedFor(index, attempt) }); }
     catch { continue; }
     const stats = difficultyStats(level), score = stats.depth * 3 + stats.forks * 2 - stats.choices;
     if (score > bestScore) { best = level; bestScore = score; }
@@ -487,27 +560,38 @@ function generateEndless(index) {
   // A bounded fallback keeps unusual seeds playable instead of exposing a failed
   // generator. It keeps the same shape and mechanics, with shorter filler paths.
   for (let reduction = 0; !best && reduction < 8; reduction++) {
-    try { best = generateLevel({ ...meta, packed: true, maxLength: 3, branches: 0.08, count: Math.floor((meta.count - pockets.arrows.length) * 0.9 ** reduction), reserved: pockets.reserved, seed: seedFor(index, 10 + reduction) }); }
+    try { best = generateLevel({ ...generationMeta, packed: true, maxLength: 3, branches: 0.08, count: Math.floor((meta.count - pockets.arrows.length) * 0.9 ** reduction), reserved: pockets.reserved, seed: seedFor(index, 10 + reduction) }); }
     catch { /* Try the next deterministic density. */ }
   }
   if (!best) throw new Error(`Unable to generate endless puzzle ${index + 1}`);
   const nextId = best.arrows.length;
   best.arrows.push(...pockets.arrows.map((a, i) => ({ ...a, id: nextId + i })));
   best.circles = pockets.circles; best.independentStops = true; best.endless = true;
+  if (advanced) {
+    for (const property of ['buttons', 'gates', 'deflectors', 'triggers', 'rotors']) best[property] = pockets[property];
+    best.bridges = [...best.bridges, ...pockets.bridges];
+    // Filler does not use any colored ridge belonging to a pocket face.
+    const controlled = new Set(pockets.arrows.flatMap(a => arrowCells(a).map(c => c.face)));
+    best.bridges = best.bridges.filter(b => b.section || !b.faces.some(f => controlled.has(f)));
+    best.independentMechanisms = true; best.independentStops = false;
+    best.mechanismPocketCount = pockets.arrows.length;
+  }
   best.difficultyStats = difficultyStats(best);
   return best;
 }
 
-export function createLevel(index) {
+export function createLevel(index, legacy = false) {
   if (!isLevelIndex(index)) throw new RangeError('Unknown level');
   if (index >= LEVELS.length) {
-    if (!endlessCache.has(index)) {
+    const cacheId = `${index}:${legacy}`;
+    if (!endlessCache.has(cacheId)) {
       if (endlessCache.size >= 8) endlessCache.delete(endlessCache.keys().next().value);
-      endlessCache.set(index, generateEndless(index));
+      endlessCache.set(cacheId, generateEndless(index, legacy));
     }
-    return structuredClone(endlessCache.get(index));
+    return structuredClone(endlessCache.get(cacheId));
   }
   const meta = LEVELS[index];
+  if (['pressure', 'fixed', 'alternating', 'rotation', 'mixed'].includes(meta.tutorial)) return mechanismPuzzle(meta.tutorial);
   if (meta.tutorial === 'branches' || meta.tutorial === 'branchRidges') return branchPuzzle(meta.tutorial === 'branchRidges');
   if (meta.tutorial === 'circles' || meta.tutorial === 'combined') return circlePuzzle(meta.tutorial === 'combined');
   if (meta.tutorial) {
@@ -519,9 +603,9 @@ export function createLevel(index) {
 }
 
 export class PuzzleGame {
-  constructor(index = 0, savedRemoved = [], savedMoves = []) { this.load(index, savedRemoved, savedMoves); }
-  load(index, savedRemoved = [], savedMoves = []) {
-    this.index = index; this.level = createLevel(index);
+  constructor(index = 0, savedRemoved = [], savedMoves = [], generation = 2) { this.load(index, savedRemoved, savedMoves, generation); }
+  load(index, savedRemoved = [], savedMoves = [], generation = 2) {
+    this.index = index; this.generation = generation; this.level = createLevel(index, generation === 1);
     this.removed = new Set(savedMoves.length ? [] : savedRemoved.filter(id => this.level.arrows.some(a => a.id === id)));
     this.history = [...this.removed].map(id => ({ id, end: 0, removed: true }));
     this.mistakes = 0;
@@ -536,6 +620,12 @@ export class PuzzleGame {
     end ??= availableMoves(this.level, this.removed).find(m => m.id === id)?.end ?? 0;
     if (end !== 0 && (end !== 1 || headCount(arrow) < 2)) return { status: 'ignored' };
     if (arrow.branch) end = arrow.exited ? 1 : 0;
+    if (hasMechanisms(this.level)) {
+      const result = analyzeMechanismMove(this.level, this.removed, arrow, end);
+      if (result.status === 'blocked') { this.mistakes++; return result; }
+      this.history.push({ id, end, beforeLevel: this.level, beforeRemoved: this.removed });
+      this.level = result.next; this.removed = result.nextRemoved; return result;
+    }
     const routes = movementRoutes(arrow, this.level, end), route = routes.find(Boolean);
     const blockers = blockerIds(arrow, this.level.arrows, this.removed, this.level.size, this.level.bridges, end, this.level.circles);
     const loop = routes.some(r => r?.loop), stopped = routes.some(r => r?.stopped), solid = routes.some(r => r?.solid);
@@ -552,6 +642,7 @@ export class PuzzleGame {
   undo() {
     const move = this.history.pop();
     if (!move) return null;
+    if (move.beforeLevel) { this.level = move.beforeLevel; this.removed = move.beforeRemoved; return move.id; }
     if (move.before) this.level.arrows = this.level.arrows.map(a => a.id === move.id ? move.before : a);
     this.removed.delete(move.id); return move.id;
   }

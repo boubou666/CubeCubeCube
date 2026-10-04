@@ -65,6 +65,7 @@ test('free rotation passes through both poles and reset restores screen-up', asy
 });
 
 test('all levels complete through keyboard controls, including new mechanics', async ({ page }) => {
+  test.setTimeout(180000);
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (let index = 0; index < LEVELS.length; index++) {
@@ -76,14 +77,14 @@ test('all levels complete through keyboard controls, including new mechanics', a
     await page.locator('#cube-canvas').focus();
     for (let move = 0; move < count + 20 && Number(await page.locator('#remaining').textContent()) > 0; move++) {
       await page.keyboard.press('h'); await page.keyboard.press('Enter');
-      if ([16, 17].includes(index)) await page.waitForFunction(() => window.__cubeDebug.scene.animations.size === 0);
+      if ([16, 17].includes(index) || index >= 23) await page.waitForFunction(() => !window.__cubeDebug.scene.busy);
     }
     await expect(page.locator('#remaining')).toHaveText('0');
     await expect(page.locator('#win-dialog')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#completed-count')).toHaveText(String(index + 1));
   }
   await page.locator('#next-button').click();
-  await expect(page.locator('#level-number')).toHaveText('LEVEL 24');
+  await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 1}`);
   await expect(page.locator('#level-title')).toContainText('Beyond the corners');
   await page.locator('#levels-button').click();
   await expect(page.locator('#level-grid .level-card.is-complete')).toHaveCount(LEVELS.length);
@@ -118,6 +119,92 @@ test('collection, theme, sound preferences, and help dialog work', async ({ page
   await expect(page.locator('#help-dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('#help-dialog')).not.toBeVisible();
+});
+
+test('an arrow across a tunnel gap blocks real pointer movement until it clears', async ({ page }) => {
+  await page.evaluate(() => {
+    const { game, scene } = window.__cubeDebug;
+    const cell = (x, y) => ({ face: 'front', x, y });
+    game.level = { size: { x: 6, y: 6, z: 4, hole: { x: [2, 3], y: [2, 3] } }, bridges: [], arrows: [
+      { id: 0, cells: [cell(2, 0), cell(2, 1)], direction: [0, 1] },
+      { id: 1, cells: [cell(3, 4), cell(2, 4), cell(1, 4)], direction: [-1, 0] },
+    ] };
+    game.removed.clear(); game.history = []; scene.load(game.level, game.removed); scene.hint(0);
+  });
+  await page.waitForFunction(() => !window.__cubeDebug.scene.cameraTween);
+  const head = await page.evaluate(() => window.__cubeDebug.scene.screenPoint(0));
+  await page.mouse.click(head.x, head.y);
+  await expect(page.locator('#toast')).toContainText('Something’s in the way');
+  expect(await page.evaluate(() => window.__cubeDebug.game.history.length)).toBe(0);
+  const obstacle = await page.evaluate(() => window.__cubeDebug.scene.screenPoint(1));
+  await page.mouse.click(obstacle.x, obstacle.y);
+  await expect(page.locator('#remaining')).toHaveText('1');
+  await page.waitForFunction(() => window.__cubeDebug.scene.effects.length === 0 && !window.__cubeDebug.scene.busy);
+  const clearedHead = await page.evaluate(() => window.__cubeDebug.scene.screenPoint(0));
+  await page.mouse.click(clearedHead.x, clearedHead.y);
+  await expect(page.locator('#remaining')).toHaveText('0');
+});
+
+test('pressure gates, fixed and alternating tiles react only to successful arrow moves', async ({ page }) => {
+  const errors = []; page.on('pageerror', e => errors.push(e.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#levels-button').click(); await page.locator('[data-level="23"]').click();
+  await page.waitForFunction(() => !window.__cubeDebug.scene.cameraTween);
+  const head = await page.evaluate(() => window.__cubeDebug.scene.screenPoint(0));
+  await page.mouse.click(head.x, head.y);
+  await expect(page.locator('#toast')).toContainText('Button held');
+  await page.waitForFunction(() => !window.__cubeDebug.scene.busy);
+  const parked = await page.evaluate(() => window.__cubeDebug.game.level.arrows[0].cells);
+  await page.reload();
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.arrows[0].cells)).toEqual(parked);
+  await page.locator('#undo-button').click();
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.arrows[0].cells.at(-1).x)).toBe(1);
+  await page.screenshot({ path: '.local/pressure-buttons.png', fullPage: true });
+  await page.locator('#levels-button').click(); await page.locator('[data-level="25"]').click();
+  await page.waitForFunction(() => !window.__cubeDebug.scene.cameraTween);
+  // Clicking the deflector itself does not select an arrow or change its turn.
+  const tilePoint = await page.evaluate(() => {
+    const { scene } = window.__cubeDebug;
+    const point = scene.meshes.get(0).tip.position.clone(); point.x += 3.6 / 6;
+    point.project(scene.camera); const box = scene.renderer.domElement.getBoundingClientRect();
+    return { x: box.left + (point.x + 1) * box.width / 2, y: box.top + (1 - point.y) * box.height / 2 };
+  });
+  await page.mouse.click(tilePoint.x, tilePoint.y);
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.deflectors[0].turn)).toBe(1);
+  await page.locator('#cube-canvas').focus(); await page.keyboard.press('h'); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => !window.__cubeDebug.scene.busy);
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.deflectors[0].turn)).toBe(-1);
+  await page.reload();
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.deflectors[0].turn)).toBe(-1);
+  await page.locator('#undo-button').click();
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.deflectors[0].turn)).toBe(1);
+  await page.screenshot({ path: '.local/alternating-deflector.png', fullPage: true });
+  expect(errors).toEqual([]);
+});
+
+test('rotating section animates its arrows, restores with undo, and is discoverable by family', async ({ page }) => {
+  const errors = []; page.on('pageerror', e => errors.push(e.message));
+  await page.locator('#levels-button').click();
+  await page.getByRole('button', { name: 'Rotation', exact: true }).click();
+  await expect(page.locator('#level-grid .level-card')).toHaveCount(1);
+  await page.locator('[data-level="26"]').click();
+  await page.locator('#cube-canvas').focus(); await page.keyboard.press('h'); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => Boolean(window.__cubeDebug.scene.sectionTween));
+  expect(await page.evaluate(() => window.__cubeDebug.scene.sectionTween.objects.some(o => o.object === window.__cubeDebug.scene.meshes.get(1).group))).toBe(true);
+  await page.waitForFunction(() => !window.__cubeDebug.scene.busy);
+  expect(await page.evaluate(() => window.__cubeDebug.scene.meshes.get(1).arrow.cells[0].face)).toBe('right');
+  await page.screenshot({ path: '.local/rotating-section.png', fullPage: true });
+  await page.reload();
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.rotors[0].turns)).toBe(1);
+  await page.locator('#undo-button').click();
+  expect(await page.evaluate(() => window.__cubeDebug.scene.meshes.get(1).arrow.cells[0].face)).toBe('front');
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.rotors[0].turns)).toBe(0);
+  await page.locator('#cube-canvas').focus(); await page.keyboard.press('h'); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => Boolean(window.__cubeDebug.scene.sectionTween));
+  await page.locator('#undo-button').click(); await page.waitForTimeout(950);
+  expect(await page.evaluate(() => window.__cubeDebug.game.level.rotors[0].turns)).toBe(0);
+  expect(await page.evaluate(() => window.__cubeDebug.scene.busy)).toBe(false);
+  expect(errors).toEqual([]);
 });
 
 test('painted ridge is visible and opposite heads pick their own direction', async ({ page }) => {
@@ -271,8 +358,8 @@ test('endless journey completes into another puzzle and restores seeded progress
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.locator('#levels-button').click(); await page.locator('#endless-button').click();
-  await expect(page.locator('#level-number')).toHaveText('LEVEL 24');
-  await expect(page.locator('#collection-count')).toHaveText('24 / ∞');
+  await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 1}`);
+  await expect(page.locator('#collection-count')).toHaveText(`${LEVELS.length + 1} / ∞`);
   const fingerprint = await page.evaluate(() => JSON.stringify(window.__cubeDebug.game.level.arrows));
   const count = Number(await page.locator('#remaining').textContent());
   await page.locator('#cube-canvas').focus();
@@ -287,12 +374,12 @@ test('endless journey completes into another puzzle and restores seeded progress
   for (let i = 0; i < count; i++) { await page.keyboard.press('h'); await page.keyboard.press('Enter'); }
   await expect(page.locator('#win-dialog')).toBeVisible();
   await expect(page.locator('#completed-count')).toHaveText('1');
-  await page.locator('#next-button').click(); await expect(page.locator('#level-number')).toHaveText('LEVEL 25');
+  await page.locator('#next-button').click(); await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 2}`);
   await page.locator('#levels-button').click();
-  await expect(page.locator('#endless-grid [data-level="23"]')).toHaveClass(/is-complete/);
+  await expect(page.locator(`#endless-grid [data-level="${LEVELS.length}"]`)).toHaveClass(/is-complete/);
   await expect(page.locator('#endless-grid .level-card')).toHaveCount(12);
-  await page.locator('#endless-next').click(); await expect(page.locator('#endless-page-label')).toHaveText('36–47');
-  await page.locator('#endless-prev').click(); await expect(page.locator('#endless-page-label')).toHaveText('24–35');
+  await page.locator('#endless-next').click(); await expect(page.locator('#endless-page-label')).toHaveText(`${LEVELS.length + 13}–${LEVELS.length + 24}`);
+  await page.locator('#endless-prev').click(); await expect(page.locator('#endless-page-label')).toHaveText(`${LEVELS.length + 1}–${LEVELS.length + 12}`);
   await page.locator('.endless-heading').scrollIntoViewIfNeeded();
   await page.screenshot({ path: '.local/endless-collection.png', fullPage: true });
   expect(errors).toEqual([]);
@@ -300,9 +387,9 @@ test('endless journey completes into another puzzle and restores seeded progress
 
 test('later endless circles and a distant tier render, park, reload, and remain playable on mobile', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  await page.locator('#levels-button').click(); await page.locator('#puzzle-jump').fill('55');
+  await page.locator('#levels-button').click(); await page.locator('#puzzle-jump').fill(String(LEVELS.length + 32));
   await page.locator('#jump-form button').click();
-  await expect(page.locator('#level-number')).toHaveText('LEVEL 55');
+  await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 32}`);
   await expect(page.locator('#mechanic-notice')).toContainText('Circle = pause');
   const id = await page.evaluate(() => window.__cubeDebug.game.level.arrows.length - 4);
   // Cycle the actual hint control to the independently solvable parking pocket.

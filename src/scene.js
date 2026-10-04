@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { FACES, worldPoint, worldDirection, travelRoute, arrowEnd, orientArrow, surfaceLayout, ridgeSegments } from './puzzle.js';
+import { FACES, worldPoint, worldDirection, travelRoute, arrowCells, arrowEnd, orientArrow, surfaceLayout, ridgeSegments } from './puzzle.js';
+import { pressedButtons, inSection } from './mechanics.js';
 
 const THEMES = {
   ivory: { cube: '#f6f1e5', ink: '#284e47', accents: ['#284e47', '#284e47', '#284e47', '#a46d51', '#6b8570'] },
@@ -169,14 +170,14 @@ export class CubeScene {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set((x - rect.left) / rect.width * 2 - 1, -(y - rect.top) / rect.height * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const targets = [this.cube];
+    const targets = [this.cube, ...(this.rotorMesh ? [this.rotorMesh] : [])];
     for (const [id, entry] of this.meshes) if (!this.animations.has(id)) {
       if (!entry.arrow.exited) targets.push(entry.hit, entry.tip);
       if (entry.otherTip && !entry.arrow.branch?.exited) targets.push(entry.otherTip);
       if (entry.branchHit && !entry.arrow.branch.exited) targets.push(entry.branchHit);
     }
     const hit = this.raycaster.intersectObjects(targets, false)[0];
-    if (!hit || hit.object === this.cube) return null;
+    if (!hit || hit.object === this.cube || hit.object === this.rotorMesh || this.sectionTween) return null;
     const id = hit.object.userData.arrowId, entry = this.meshes.get(id);
     const end = entry.otherTip && hit.point.distanceToSquared(entry.otherTip.position) < hit.point.distanceToSquared(entry.tip.position) ? 1 : 0;
     return { id, end };
@@ -188,6 +189,9 @@ export class CubeScene {
   }
 
   load(level, removed, theme = this.theme) {
+    this.cancelSectionTween();
+    this.removed = removed;
+    this.departingId = null;
     this.level = level; this.animations.clear(); this.effects = []; this.hintId = this.hoverId = null;
     for (const entry of this.meshes.values()) this.disposeArrow(entry);
     this.meshes.clear(); this.theme = theme; this.cube.material.color.set(THEMES[theme].cube);
@@ -198,7 +202,17 @@ export class CubeScene {
 
   drawSolid() {
     this.cube.geometry.dispose();
+    this.cube.position.set(0, 0, 0);
+    if (this.rotorMesh) { this.scene.remove(this.rotorMesh); this.rotorMesh.geometry.dispose(); this.rotorMesh.material.dispose(); this.rotorMesh = null; }
     this.surfaceSamples = surfaceLayout(this.level.size).cells.map(cell => ({ face: cell.face, point: vec(worldPoint(cell, this.level.size)).addScaledVector(vec(FACES[cell.face].normal), 0.055), normal: vec(FACES[cell.face].normal) }));
+    if (this.level.rotors?.length) {
+      const layout = surfaceLayout(this.level.size), section = this.level.rotors[0];
+      const [width, height, depth] = layout.dimensions.map(n => n * layout.pitch), lower = section.start * layout.pitch, upper = height - lower;
+      this.cube.geometry = new RoundedBoxGeometry(width, lower - 0.012, depth, 4, 0.065);
+      this.cube.position.y = (lower - height) / 2;
+      this.rotorMesh = new THREE.Mesh(new RoundedBoxGeometry(width, upper - 0.012, depth, 4, 0.065), this.cube.material.clone());
+      this.rotorMesh.position.y = lower / 2; this.scene.add(this.rotorMesh); return;
+    }
     if (typeof this.level.size === 'number') { this.cube.geometry = new RoundedBoxGeometry(3.6, 3.6, 3.6, 4, 0.11); return; }
     const layout = surfaceLayout(this.level.size);
     if (!this.level.size.hole && !this.level.size.heights && !this.level.size.terrace) {
@@ -237,7 +251,11 @@ export class CubeScene {
     }
     for (const bridge of this.level.bridges ?? []) {
       for (const [a, b] of ridgeSegments(bridge.faces, this.level.size)) {
+        const section = this.level.rotors?.find(r => r.id === bridge.section);
+        const layout = surfaceLayout(this.level.size), cut = section && (section.start - layout.dimensions[1] / 2) * layout.pitch;
+        if (section && (a[1] + b[1]) / 2 < cut - 1e-8) continue;
         const line = new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(vec(a), vec(b)), 1, 0.046, 10, false), new THREE.MeshBasicMaterial({ color: bridge.color }));
+        line.userData.section = bridge.section;
         this.ridges.add(line);
       }
     }
@@ -246,7 +264,62 @@ export class CubeScene {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.023, 6, 24), new THREE.MeshBasicMaterial({ color: '#b3934d' }));
       ring.position.copy(vec(worldPoint(cell, this.level.size))).addScaledVector(normal, 0.055);
       ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal); this.ridges.add(ring);
+      ring.userData.cell = cell;
     }
+    const pressed = pressedButtons(this.level, this.removed, this.departingId);
+    const place = (mesh, cell) => {
+      mesh.position.copy(vec(worldPoint(cell, this.level.size))).addScaledVector(vec(FACES[cell.face].normal), 0.058);
+      const f = FACES[cell.face]; mesh.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(vec(f.u), vec(f.v), vec(f.normal)));
+      mesh.userData.cell = cell; this.ridges.add(mesh); return mesh;
+    };
+    const material = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity, side: THREE.DoubleSide });
+    const stroke = (cell, points, color, radius = 0.018, opacity = 1) => {
+      const curve = new Polyline(points.map(([x, y]) => new THREE.Vector3(x, y, 0)));
+      return place(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(6, points.length * 3), radius, 6, false), material(color, opacity)), cell);
+    };
+    for (const button of this.level.buttons ?? []) {
+      place(new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.026, 6, 24), material(button.color)), button);
+      place(new THREE.Mesh(new THREE.CircleGeometry(pressed.has(button.id) ? 0.105 : 0.06, 24), material(button.color, pressed.has(button.id) ? 0.9 : 0.4)), button);
+    }
+    for (const gate of this.level.gates ?? []) {
+      const open = pressed.has(gate.button);
+      stroke(gate, [[-0.15, -0.15], [-0.15, 0.15]], gate.color, 0.024);
+      stroke(gate, [[0.15, -0.15], [0.15, 0.15]], gate.color, 0.024);
+      if (!open) for (const y of [-0.085, 0.085]) stroke(gate, [[-0.15, y], [0.15, y]], gate.color, 0.025);
+      else stroke(gate, [[-0.05, -0.03], [0, -0.07], [0.08, 0.07]], gate.color, 0.016, 0.55);
+    }
+    for (const tile of this.level.deflectors ?? []) {
+      const color = tile.alternating ? '#9876ab' : '#6598aa', end = -tile.turn * 0.135;
+      stroke(tile, [[0, -0.135], [0, 0], [end, 0]], color, 0.025);
+      stroke(tile, [[end + tile.turn * 0.06, -0.055], [end, 0], [end + tile.turn * 0.06, 0.055]], color, 0.025);
+      stroke(tile, [[-0.19, -0.19], [0.19, -0.19], [0.19, 0.19], [-0.19, 0.19], [-0.19, -0.19]], color, 0.011, 0.55);
+      if (tile.alternating) for (const x of [-0.075, 0.015, 0.105]) stroke(tile, [[x, 0.155], [x + 0.04, 0.195]], color, 0.014);
+    }
+    for (const trigger of this.level.triggers ?? []) {
+      const points = Array.from({ length: 25 }, (_, i) => { const angle = i / 24 * Math.PI * 3.4, r = 0.025 + i / 24 * 0.13; return [Math.cos(angle) * r, Math.sin(angle) * r]; });
+      stroke(trigger, points, trigger.color, 0.024);
+      place(new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.012, 6, 28), material(trigger.color, 0.55)), trigger);
+    }
+  }
+
+  get busy() { return this.animations.size > 0 || Boolean(this.sectionTween); }
+
+  releaseButton(id) { this.departingId = id; this.drawRidges(); }
+
+  cancelSectionTween() {
+    if (!this.sectionTween) return;
+    for (const { object, parent } of this.sectionTween.objects) parent.add(object);
+    this.scene.remove(this.sectionTween.group); this.sectionTween = null;
+  }
+
+  rotateSection(id, quarters, onDone) {
+    const section = this.level.rotors.find(r => r.id === id), group = new THREE.Group(), objects = [];
+    const take = object => { objects.push({ object, parent: object.parent }); group.add(object); };
+    if (this.rotorMesh) take(this.rotorMesh);
+    for (const entry of this.meshes.values()) if (arrowCells(entry.arrow).every(c => inSection(c, this.level.size, section))) take(entry.group);
+    for (const mesh of [...this.ridges.children]) if (mesh.userData.section === id || (mesh.userData.cell && inSection(mesh.userData.cell, this.level.size, section))) take(mesh);
+    this.scene.add(group);
+    this.sectionTween = { group, objects, quarters, start: performance.now(), duration: this.reducedMotion ? 160 : 850, onDone };
   }
 
   addArrow(arrow) {
@@ -303,6 +376,7 @@ export class CubeScene {
 
   setTheme(theme) {
     this.theme = theme; this.cube.material.color.set(THEMES[theme].cube);
+    this.rotorMesh?.material.color.set(THEMES[theme].cube);
     for (const [id, entry] of this.meshes) entry.color = THEMES[theme].accents[id % 5];
     this.paint();
   }
@@ -397,6 +471,11 @@ export class CubeScene {
   animate = () => {
     this.frame = requestAnimationFrame(this.animate);
     const now = performance.now();
+    if (this.sectionTween) {
+      const animation = this.sectionTween, t = Math.min(1, (now - animation.start) / animation.duration);
+      animation.group.rotation.y = animation.quarters * Math.PI / 2 * t * t * (3 - 2 * t);
+      if (t === 1) { const done = animation.onDone; this.cancelSectionTween(); done?.(); }
+    }
     if (this.cameraTween) {
       const t = Math.min(1, (now - this.cameraTween.start) / this.cameraTween.duration);
       // Slerp the entire orientation so both position and screen-up stay continuous,

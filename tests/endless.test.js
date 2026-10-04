@@ -10,7 +10,7 @@ test('generated puzzles across early and distant tiers have valid surfaces and c
     const valid = new Set(layout.cells.map(key)), occupied = new Set();
     assert.ok(level.arrows.length >= 35, `too sparse: ${index}`);
     for (const arrow of level.arrows) {
-      const pocketStart = level.arrows.length - levelMeta(index).stopPockets * 2;
+      const pocketStart = level.arrows.length - (level.mechanismPocketCount ?? levelMeta(index).stopPockets * 2);
       if (arrow.id < pocketStart && level.circles.length) {
         for (const end of arrow.twoHeads || arrow.branch ? [0, 1] : [0]) assert.equal(travelRoute(arrow, level.size, level.bridges, end, level.circles).stopped, false, 'filler routes must never hit a parking circle');
       }
@@ -40,14 +40,14 @@ test('generated puzzles across early and distant tiers have valid surfaces and c
 });
 
 test('later tiers increase board size, arrow density, fork pressure, and dependency depth', () => {
-  const first = levelMeta(23), later = levelMeta(95);
+  const first = levelMeta(LEVELS.length), later = levelMeta(LEVELS.length + 72);
   assert.ok(later.count > first.count * 2);
   assert.ok(later.size > first.size);
   assert.ok(later.maxLength > first.maxLength);
   assert.ok(later.branches > first.branches && later.pressure > first.pressure);
   assert.ok(later.bridges.length > first.bridges.length);
-  assert.ok(createLevel(95).difficultyStats.depth > createLevel(23).difficultyStats.depth);
-  const fingerprints = Array.from({ length: 16 }, (_, i) => JSON.stringify(createLevel(23 + i).arrows));
+  assert.ok(createLevel(LEVELS.length + 72).difficultyStats.depth > createLevel(LEVELS.length).difficultyStats.depth);
+  const fingerprints = Array.from({ length: 16 }, (_, i) => JSON.stringify(createLevel(LEVELS.length + i).arrows));
   assert.equal(new Set(fingerprints).size, fingerprints.length);
 });
 
@@ -69,17 +69,17 @@ test('endless completions use compact ranges, preserve legacy progress, and vali
   const save = readSave(storage);
   assert.equal(save.index, 19); assert.deepEqual(save.completed, [0, 19, 22]);
   assert.equal(save.theme, 'mint'); assert.equal(save.sound, true);
-  for (let i = 23; i < 10023; i++) markCompleted(save, i);
+  for (let i = LEVELS.length; i < LEVELS.length + 10000; i++) markCompleted(save, i);
   markCompleted(save, 1000000000); markCompleted(save, 1000000000);
-  assert.deepEqual(save.endlessCompleted, [[23, 10022], [1000000000, 1000000000]]);
+  assert.deepEqual(save.endlessCompleted, [[LEVELS.length, LEVELS.length + 9999], [1000000000, 1000000000]]);
   assert.equal(completedCount(save), 10004);
-  assert.equal(hasCompleted(save, 23), true); assert.equal(hasCompleted(save, 10023), false);
+  assert.equal(hasCompleted(save, LEVELS.length), true); assert.equal(hasCompleted(save, LEVELS.length + 10000), false);
   save.index = 1000000000;
   assert.equal(writeSave(save, storage), true);
   assert.ok(store.get(SAVE_KEY).length < 400);
   assert.deepEqual(readSave(storage), save);
   store.set(SAVE_KEY, JSON.stringify({ version: 3, index: Infinity, endlessCompleted: [[-1, 2], [25, 24], [23, 25], [24, 28], [29, 29], ['30', 31]] }));
   const repaired = readSave(storage);
-  assert.equal(repaired.index, 0); assert.deepEqual(repaired.endlessCompleted, [[23, 29]]);
+  assert.equal(repaired.index, 0); assert.deepEqual(repaired.endlessCompleted, [[LEVELS.length, LEVELS.length + 6]]);
   assert.throws(() => createLevel(Number.MAX_SAFE_INTEGER), RangeError);
 });

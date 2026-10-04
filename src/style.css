@@ -246,6 +246,10 @@ kbd { font-family: inherit; font-size: 9px; font-weight: 500; padding: 2px 5px; 
 @media (prefers-reduced-motion: reduce) { *, *:before, *:after { animation: none !important; transition: none !important; } }
 
 .endless-section { border-top: 1px solid var(--line); padding-top: 24px; margin-top: 26px; }
+.family-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 18px; }
+.family-filter { border: 1px solid var(--line); border-radius: 20px; background: transparent; color: var(--muted); padding: 7px 11px; font: inherit; font-size: 10px; cursor: pointer; }
+.family-filter[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.family-filter:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .endless-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .endless-heading h3 { font-family: Georgia, serif; font-weight: 400; font-size: 27px; margin: 8px 0; }
 .endless-heading p { font-size: 11px; color: var(--muted); line-height: 1.7; }

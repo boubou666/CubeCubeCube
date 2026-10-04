@@ -1,6 +1,6 @@
 export const SAVE_KEY = 'cubecubecube.save.v1';
-import { LEVELS, isLevelIndex } from './puzzle.js';
-const EMPTY = { version: 3, index: 0, removed: [], moves: [], completed: [], endlessCompleted: [], frontier: LEVELS.length, sound: false, theme: 'ivory' };
+import { LEVELS, isLevelIndex, ORIGINAL_OPENING_COUNT, NEW_OPENING_COUNT } from './puzzle.js';
+const EMPTY = { version: 4, generation: 2, index: 0, removed: [], moves: [], completed: [], endlessCompleted: [], frontier: LEVELS.length, sound: false, theme: 'ivory' };
 const emptySave = () => ({ ...EMPTY, removed: [], moves: [], completed: [], endlessCompleted: [] });
 
 export function hasCompleted(save, index) {
@@ -22,10 +22,17 @@ export function markCompleted(save, index) {
 }
 export function readSave(storage = globalThis.localStorage) {
   try {
-    const s = JSON.parse(storage.getItem(SAVE_KEY));
-    if (![1, 2, 3].includes(s?.version)) return emptySave();
+    let s = JSON.parse(storage.getItem(SAVE_KEY));
+    if (![1, 2, 3, 4].includes(s?.version)) return emptySave();
+    if (s.version < 4) {
+      const migrateIndex = i => isLevelIndex(i) && i >= ORIGINAL_OPENING_COUNT ? Math.min(Number.MAX_SAFE_INTEGER - 1, i + NEW_OPENING_COUNT) : i;
+      s = { ...s, generation: s.index >= ORIGINAL_OPENING_COUNT ? 1 : 2, index: migrateIndex(s.index), frontier: migrateIndex(s.frontier),
+        completed: Array.isArray(s.completed) ? s.completed.map(migrateIndex) : [],
+        endlessCompleted: Array.isArray(s.endlessCompleted) ? s.endlessCompleted.map(r => Array.isArray(r) && r.length === 2 ? r.map(migrateIndex) : r) : [] };
+    }
     const result = {
-      version: 3,
+      version: 4,
+      generation: s.generation === 1 ? 1 : 2,
       index: isLevelIndex(s.index) ? s.index : 0,
       removed: Array.isArray(s.removed) ? [...new Set(s.removed.filter(v => Number.isInteger(v) && v >= 0))] : [],
       moves: Array.isArray(s.moves) ? s.moves.slice(0, 1000).filter(m => Number.isInteger(m?.id) && m.id >= 0 && (m.end === 0 || m.end === 1)).map(({ id, end }) => ({ id, end })) : [],
@@ -49,6 +56,6 @@ export function readSave(storage = globalThis.localStorage) {
   } catch { return emptySave(); }
 }
 export function writeSave(save, storage = globalThis.localStorage) {
-  try { storage.setItem(SAVE_KEY, JSON.stringify({ ...save, version: 3 })); return true; }
+  try { storage.setItem(SAVE_KEY, JSON.stringify({ ...save, version: 4 })); return true; }
   catch { return false; }
 }

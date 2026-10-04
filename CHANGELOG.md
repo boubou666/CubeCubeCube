@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Pressure buttons that pause arrowheads and hold matching gates open until the head leaves.
+- Fixed quarter-turn deflectors and alternating deflectors that reverse after a successful head passage; only arrows operate them.
+- Arrow-triggered rotating upper sections that transport arrows, tiles, and colored ridge connections.
+- Five new mechanic lessons, puzzle families in the collection, and progressive combinations in the endless journey.
+- Transactional movement, mechanism-aware hints, and complete undo and save replay for gates, deflectors, and rotation.
+- Save migration that keeps earned completions and shifts existing endless progress past the new opening lessons.
+
+### Fixed
+
+- Arrows ignoring obstacles on the same face beyond a tunnel opening. Physical exit trajectories now check arrow bodies across gaps, at their actual 3D depth.
+- Generation accepting paths with blocked flights across gaps.
+
 ## [0.1.0] - 2026-10-04
 
 ### Added
