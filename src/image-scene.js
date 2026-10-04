@@ -81,7 +81,7 @@ export class ImageScene {
     const pointers = new Map();
     const local = e => { const rect = this.canvas.getBoundingClientRect(); return [e.clientX - rect.left, e.clientY - rect.top]; };
     this.canvas.addEventListener('pointerdown', e => {
-      this.canvas.focus(); this.canvas.setPointerCapture(e.pointerId); const p = local(e); pointers.set(e.pointerId, p);
+      this.canvas.focus({ preventScroll: true }); this.canvas.setPointerCapture(e.pointerId); const p = local(e); pointers.set(e.pointerId, p);
       pinching = pointers.size > 1;
       down = { point: p, start: p, pan: [...this.pan], dragged: false };
     });

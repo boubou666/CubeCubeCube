@@ -29,6 +29,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 
+- Clicking a 2D arrow no longer scrolls the canvas when it receives focus, keeping the click aligned with the chosen arrow.
 - Movement locks left behind by missing arrow meshes or failed animation frames. All arrow types finish or restore their committed state before unlocking a mechanism level.
 - Pressure-button feedback for forks parked by their second head, and misleading wait messages on deadlocked boards.
 - Active saved puzzles retain their original generator while newly started puzzles use the richer parking layouts.

@@ -8,12 +8,17 @@ test.beforeEach(async ({ page }) => {
 });
 test('sample is a multicoloured puzzle; pointer blockers, hints, undo, restart and reload work', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  const level = await page.evaluate(() => window.__pictureDebug.game.level), blocked = level.arrows.find(a => imageBlockers(level, a).length);
+  const level = await page.evaluate(() => window.__pictureDebug.game.level);
   expect(level.arrows.every(a => a.cells.length >= 5)).toBe(true);
   expect(level.arrows.length).toBeLessThan(160);
   expect(level.arrows.some(a => new Set(a.colours.map(c => c.join(','))).size > 1)).toBe(true);
-  const head = await page.evaluate(id => window.__pictureDebug.scene.screenPoint(id), blocked.id);
+  const blockedIds = level.arrows.filter(a => imageBlockers(level, a).length).map(a => a.id);
+  const head = await page.evaluate(ids => ids.map(id => ({ id, ...window.__pictureDebug.scene.screenPoint(id) })).find(p => p.x > 0 && p.x < innerWidth && p.y > 0 && p.y < innerHeight - 20), blockedIds);
+  expect(head).toBeTruthy();
+  const scrollBefore = await page.evaluate(() => scrollY);
   await page.mouse.click(head.x, head.y); await expect(page.locator('#play-status')).toContainText('in the way');
+  expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
+  expect(await page.evaluate(() => window.__pictureDebug.game.history.length)).toBe(0);
   const count = level.arrows.length;
   await page.locator('#picture-canvas').focus(); await page.keyboard.press('h'); await page.keyboard.press('Enter');
   await page.waitForFunction(() => !window.__pictureDebug.scene.busy && window.__pictureDebug.game.history.length === 1);
