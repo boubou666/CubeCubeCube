@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-04
+
 ### Changed
 
 - 2D picture puzzles now use arrows of at least five cells, with longer target paths and leftover fragments absorbed into existing bodies where possible. Unusable fragments stay empty instead of becoming tiny arrows.
@@ -14,6 +16,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Home game selector with illustrated cards for the cube, picture puzzles, and Colony; the cube now lives at `cube.html` with its existing saves intact.
+- Separate Three.js Colony puzzle inspired by Colony Flow: pixel pictures, five active slots, queued color boxes, and animated ants that carry outside-accessible cubes back to the nest.
+- Six original Colony motifs with progressive queue variants, solvable generated reserves, undo, state-aware hints, pause, double speed, a collection, and independent validated local saves.
+- Colony rule, save, complete-game browser, navigation, and desktop/mobile regression checks.
 - Separate 2D picture puzzles: upload, paste, drop, or import a CORS-enabled direct image URL, then crop and generate a playable image.
 - Pixel-sampled colours along each arrow, colour-aware path placement, and guaranteed solutions by forward peeling.
 - Three difficulty and detail settings, alternate seeded arrangements, original-image comparison, zoom/pan, keyboard hints, undo, restart, and completion.
@@ -60,5 +66,6 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/boubou666/CubeCubeCube/releases/tag/v0.1.0

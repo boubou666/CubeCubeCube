@@ -14,7 +14,7 @@ const icons = {
 document.querySelector('#app').innerHTML = `
   <header class="picture-header">
     <a class="picture-brand" href="${import.meta.env.BASE_URL}"><span class="picture-mark">↗</span><span>cube cube cube<small>A small escape.</small></span></a>
-    <nav aria-label="Game modes"><a href="${import.meta.env.BASE_URL}">The cube <span>3D</span></a><span class="active-mode" aria-current="page">Picture puzzles <span>2D</span></span></nav>
+    <nav aria-label="Game modes"><a href="${import.meta.env.BASE_URL}cube.html">The cube <span>3D</span></a><span class="active-mode" aria-current="page">Picture puzzles <span>2D</span></span><a href="${import.meta.env.BASE_URL}colony.html">Colony</a></nav>
   </header>
   <main class="picture-layout">
     <section class="picture-intro"><div><span class="eyebrow">A DIFFERENT KIND OF PERSPECTIVE</span><h1>Your pictures.<br><em>A little less tangled.</em></h1></div><p>Bring a photo, an illustration, a memory.<br>Find the clear paths and let the picture go,<br>one colourful arrow at a time.</p></section>

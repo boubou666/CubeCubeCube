@@ -1,0 +1,140 @@
+@import './style.css';
+.colony-header { width: 90%; max-width: 1440px; margin: auto; padding: 25px 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 24px; justify-content: space-between; }
+.colony-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--ink); font-size: 12px; font-weight: 650; }
+.colony-brand small { display: block; font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+.colony-mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--ink); color: var(--page); font-size: 25px; }
+.colony-header nav { display: flex; gap: 7px; }
+.colony-header nav a { padding: 10px 17px; border-radius: 24px; color: var(--muted); font-size: 11px; text-decoration: none; white-space: nowrap; }
+.colony-header nav small { font-size: 8px; margin-left: 7px; opacity: .65; }
+.colony-header nav a[aria-current] { border: 1px solid #ccd7c7; color: var(--ink); background: #eaf0e2; }
+.colony-header nav a:hover { background: var(--accent); }
+.collection-link { font-size: 10px; white-space: nowrap; padding: 10px 0; }
+.collection-link span { margin: 0 10px; background: var(--accent); padding: 4px 7px; border-radius: 10px; }
+.colony-layout { width: 90%; max-width: 1350px; margin: 42px auto 25px; display: grid; grid-template-columns: minmax(170px, .85fr) minmax(400px, 2.7fr) minmax(220px, 1fr); gap: 38px; align-items: start; }
+.colony-intro { padding-top: 65px; }
+.colony-intro h1 { font-size: clamp(38px, 3.7vw, 55px); margin: 24px 0; }
+.colony-intro > p { font-size: 12px; line-height: 1.9; color: var(--muted); }
+.colony-rule { width: 40px; border-top: 1px solid var(--line); margin: 30px 0; }
+.colony-tip { display: flex; align-items: start; gap: 12px; margin: 19px 0; }
+.colony-tip > span { font-size: 9px; border-radius: 50%; width: 26px; height: 26px; background: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.colony-tip strong { font-size: 11px; font-weight: 600; }
+.colony-tip p { font-size: 10px; color: var(--muted); line-height: 1.8; margin: 6px 0; }
+.colony-intro .slow-note { font-size: 9px; line-height: 1.8; }
+.colony-help-link { font-size: 9px; text-decoration: underline; text-underline-offset: 4px; margin: 14px 0; padding: 0; color: var(--muted); }
+.colony-play { min-width: 0; }
+.colony-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 0 3px 15px; }
+.colony-heading .eyebrow { font-size: 8px; letter-spacing: 1.1px; }
+.colony-heading h2 { font-size: 22px; font-weight: 500; letter-spacing: -.6px; margin: 6px 0 0; }
+.colony-counter { display: flex; align-items: center; flex-direction: column; }
+.colony-counter strong { font-family: Georgia, serif; font-size: 35px; font-weight: 400; line-height: 1; }
+.colony-counter > span { font-size: 8px; color: var(--muted); margin-top: 7px; white-space: nowrap; }
+.colony-progress { height: 3px; background: #e1e7d9; border-radius: 3px; margin-bottom: 18px; overflow: hidden; }
+.colony-progress span { display: block; height: 100%; background: #769777; transition: width .4s; }
+.colony-stage { position: relative; background: #eff0e3; border: 1px solid #dfe3d2; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 32px #244c4205; }
+#colony-scene { width: 100%; height: clamp(400px, 35vw, 520px); }
+#colony-canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.stage-label { position: absolute; z-index: 1; top: 16px; left: 17px; display: flex; align-items: center; gap: 7px; font-size: 9px; color: #667965; pointer-events: none; }
+.stage-controls { position: absolute; z-index: 1; bottom: 15px; right: 15px; display: flex; gap: 4px; background: #fffdf4d9; padding: 4px; border: 1px solid #dddcc7; border-radius: 24px; }
+.stage-controls button { width: 32px; height: 27px; border-radius: 20px; font-size: 11px; }
+.stage-controls button[aria-pressed="true"] { background: #244c42; color: #fafbf6; }
+.slots-heading { display: flex; justify-content: space-between; align-items: center; margin: 19px 2px 10px; }
+.slots-heading .eyebrow { font-size: 8px; letter-spacing: 1.6px; }
+.slots-heading > span:last-child { font-size: 9px; color: var(--muted); }
+.colony-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.colony-slot { height: 75px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.colony-slot.vacant { border: 1px dashed #cdd8c6; background: #edf0e6; color: #84927d; }
+.colony-slot.vacant > span { font-size: 19px; font-weight: 300; }
+.colony-slot small { font-size: 8px; margin-top: 3px; }
+.colony-slot.occupied { background: color-mix(in srgb, var(--box-color) 18%, #fffdf5); border: 1px solid color-mix(in srgb, var(--box-color) 60%, #e5e7dd); }
+.colony-slot strong { font-size: 20px; font-weight: 550; margin-top: 2px; }
+.colony-slot strong small { font-size: 8px; font-weight: 400; color: var(--muted); }
+.slot-color { width: 8px; height: 8px; border-radius: 3px; background: var(--box-color); }
+.slot-fill { position: absolute; bottom: 0; left: 0; height: 3px; background: var(--box-color); transition: width .4s; }
+.colony-slot.waiting > small { color: #967448; }
+.colony-toolbar { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 19px 0 8px; }
+.colony-toolbar button { font-size: 17px; padding: 11px 13px; display: flex; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; }
+.colony-toolbar button span { font-size: 10px; }
+.colony-toolbar kbd { font-size: 8px; }
+.colony-toolbar button:hover, #colony-hint { background: var(--accent); }
+#colony-status { font-size: 10px; color: var(--muted); line-height: 1.8; min-height: 36px; text-align: center; margin: 10px 0; }
+.colony-reserve { padding-top: 8px; }
+.reserve-heading h2 { font-family: Georgia, serif; font-size: 28px; font-weight: 400; letter-spacing: -.6px; margin: 10px 0; }
+.reserve-heading .eyebrow { font-size: 8px; letter-spacing: 1.6px; }
+.reserve-heading p { font-size: 10px; color: var(--muted); line-height: 1.8; margin-bottom: 24px; }
+.colony-queues { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; max-height: 405px; overflow-y: auto; scrollbar-width: thin; padding: 2px 3px 15px; }
+.colony-queue { display: flex; flex-direction: column; align-items: center; gap: 11px; }
+.queue-label { font-size: 8px; color: #899681; margin-bottom: 4px; }
+.ant-box { background: var(--box-color); width: 100%; aspect-ratio: .85; border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fffdf5; position: relative; padding: 7px 3px; box-shadow: inset 0 3px 0 #ffffff36, inset 0 -5px 0 #183e3828, 0 4px 0 #dde3d5; text-shadow: 0 1px 2px #173a3266; border: 1px solid #ffffff40; }
+.ant-box[style*="#f4dfaa"], .ant-box[style*="#efbe57"], .ant-box[style*="#97b896"] { color: #355146; text-shadow: 0 1px 0 #ffffff33; }
+.box-ant { font-size: 14px; line-height: 1; opacity: .8; }
+.ant-box strong { font-size: 23px; letter-spacing: -.8px; font-weight: 650; }
+.box-color-name { font-size: 7px; margin-top: 2px; }
+.send-mark { position: absolute; top: -8px; right: -3px; color: var(--ink); text-shadow: none; width: 18px; height: 18px; border-radius: 50%; background: #fffdf4; font-size: 12px; border: 1px solid #d3dcca; }
+.ant-box.ready:hover { transform: translateY(-3px); }
+.ant-box.buried { opacity: .55; transform: scale(.91); }
+.ant-box.ready:disabled { opacity: .65; }
+.ant-box.hinted { outline: 2px solid #a87835; outline-offset: 3px; }
+.queue-empty { display: flex; flex-direction: column; align-items: center; font-size: 15px; color: #93a487; }
+.queue-empty small { font-size: 7px; text-align: center; line-height: 1.8; margin-top: 8px; }
+.reserve-foot { display: flex; flex-direction: column; align-items: center; gap: 13px; padding: 17px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 9px; text-align: center; line-height: 1.7; }
+.reserve-foot > span:first-child { color: var(--ink); font-weight: 600; }
+.colony-legend { font-size: 10px; margin: 22px 0; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; background: #baac88; display: inline-block; margin-right: 5px; }
+.colony-legend p { font-size: 9px; color: var(--muted); line-height: 1.8; margin-left: 15px; }
+.colony-footer { width: 90%; max-width: 1440px; margin: auto; border-top: 1px solid var(--line); padding: 23px 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 9px; }
+.colony-footer > span:first-child { font-family: Georgia, serif; font-size: 12px; font-style: italic; color: #87997d; }
+.colony-finish { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #faf9f0eb; text-align: center; padding: 25px; }
+.colony-finish h2 { font-family: Georgia, serif; font-size: 51px; font-weight: 400; line-height: 1.1; letter-spacing: -1.5px; margin: 19px 0; }
+.colony-finish p { font-size: 11px; color: var(--muted); line-height: 1.8; }
+#colony-next, .dialog-primary { background: var(--ink); color: var(--page); font-size: 11px; padding: 15px 23px; border-radius: 10px; margin: 15px 0; }
+#colony-replay { font-size: 10px; text-decoration: underline; text-underline-offset: 3px; padding: 6px; }
+.colony-finish[hidden], #colony-error[hidden] { display: none; }
+#colony-error { position: absolute; inset: 0; background: #faf9f0f5; z-index: 4; display: grid; place-content: center; text-align: center; padding: 30px; line-height: 1.8; font-size: 13px; }
+.colony-dialog { width: min(660px, 92vw); max-height: 85svh; padding: 30px; border: 1px solid var(--line); border-radius: 18px; background: var(--page); color: var(--ink); }
+.colony-dialog::backdrop { background: #183c3555; backdrop-filter: blur(5px); }
+.dialog-heading { display: flex; justify-content: space-between; align-items: center; }
+.dialog-heading h2 { font-family: Georgia, serif; font-size: 34px; font-weight: 400; margin: 7px 0; }
+.dialog-heading > button { font-size: 28px; padding: 8px; }
+.colony-dialog p { font-size: 11px; line-height: 1.8; color: var(--muted); }
+.colony-dialog ol { padding-left: 20px; font-size: 12px; line-height: 1.9; }
+.colony-dialog li { padding: 8px; }
+.colony-dialog li strong { display: block; }
+#colony-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+#colony-levels button { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #fdfcf4; display: flex; gap: 10px; align-items: center; text-align: left; }
+#colony-levels button:hover, #colony-levels button[aria-current] { background: var(--accent); border-color: #99ac8b; }
+#colony-levels svg { width: 44px; flex-shrink: 0; border-radius: 4px; }
+#colony-levels span { font-size: 10px; line-height: 1.5; }
+#colony-levels small { display: block; font-size: 9px; color: var(--muted); margin-bottom: 3px; }
+#colony-jump { display: flex; align-items: center; gap: 10px; font-size: 11px; flex-wrap: wrap; }
+#colony-jump input { width: 100px; padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: #fffdf5; color: var(--ink); font: inherit; }
+#colony-jump button { padding: 10px; background: var(--accent); border-radius: 7px; }
+@media (max-width: 1100px) { .colony-layout { grid-template-columns: minmax(350px, 1fr) 230px; gap: 27px; max-width: 950px; } .colony-intro { display: none; } .colony-header { gap: 12px; } .colony-header nav a { padding: 10px 12px; } #colony-scene { height: 460px; } }
+@media (max-width: 700px) {
+  .colony-header { padding: 17px 0; flex-wrap: wrap; justify-content: space-between; gap: 15px 8px; width: 92%; }
+  .colony-header nav { order: 3; width: 100%; justify-content: center; gap: 5px; }
+  .colony-header nav a { font-size: 10px; padding: 9px 12px; }
+  .colony-header nav small { font-size: 7px; }
+  .colony-brand { font-size: 10px; } .colony-brand small { font-size: 8px; }
+  .collection-link { font-size: 9px; } .collection-link span { margin: 0 6px; }
+  .colony-layout { width: 92%; display: flex; flex-direction: column; margin: 26px auto 18px; gap: 23px; }
+  .colony-play, .colony-reserve { width: 100%; }
+  .colony-heading h2 { font-size: 20px; } .colony-heading .eyebrow { font-size: 7px; letter-spacing: .7px; }
+  .colony-counter strong { font-size: 30px; }
+  #colony-scene { height: clamp(320px, 108vw, 510px); }
+  .colony-slots { gap: 6px; } .colony-slot { height: 66px; } .colony-slot strong { font-size: 18px; }
+  .colony-toolbar { gap: 3px; margin-top: 12px; } .colony-toolbar button { padding: 10px 8px; } .colony-toolbar kbd { display: none; }
+  .colony-toolbar button span { font-size: 9px; }
+  #colony-status { margin-bottom: 0; min-height: 35px; }
+  .colony-reserve { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: #eff1e8; }
+  .reserve-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+  .reserve-heading h2 { margin: 0; font-size: 24px; } .reserve-heading .eyebrow { order: 2; font-size: 7px; }
+  .reserve-heading p { width: 100%; order: 3; font-size: 9px; margin: 0 0 12px; } .reserve-heading p br { display: none; }
+  .colony-queues { gap: 14px; max-height: 245px; padding: 6px 7px 15px; } .ant-box { aspect-ratio: 1.05; max-width: 85px; border-radius: 10px; }
+  .ant-box strong { font-size: 25px; } .box-color-name { font-size: 8px; } .colony-queue { gap: 10px; }
+  .reserve-foot { padding: 12px 0 0; border: 0; } .reserve-foot > span:last-child, .colony-legend { display: none; }
+  .colony-footer { width: 92%; padding: 18px 0; flex-wrap: wrap; justify-content: center; gap: 9px; font-size: 8px; }
+  .colony-footer > span:first-child { font-size: 11px; }
+  .colony-dialog { padding: 20px; } #colony-levels { grid-template-columns: repeat(2, minmax(0, 1fr)); } #colony-levels button { padding: 8px; gap: 7px; } #colony-levels svg { width: 35px; }
+  .colony-finish h2 { font-size: 42px; } .colony-finish .eyebrow { font-size: 7px; letter-spacing: 1px; }
+}
+@media (prefers-reduced-motion: reduce) { .colony-progress span, .slot-fill, .ant-box { transition: none; } }

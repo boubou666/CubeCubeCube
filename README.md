@@ -1,10 +1,12 @@
 # Cube Cube Cube
 
-A relaxing, original browser puzzle inspired by CubeAway's arrow-clearing idea. Built with Three.js, vanilla JavaScript, and Vite. No account, advertising, timers, or move limits.
+A small collection of relaxing browser puzzles, built with Three.js, vanilla JavaScript, and Vite. The home page offers illustrated cards for the 3D cube, 2D picture puzzles, and a 3D ant colony. No account, advertising, timers, or move limits.
 
 **[Play online](https://boubou666.github.io/CubeCubeCube/)** · **[Source code](https://github.com/boubou666/CubeCubeCube)**
 
 **[Play picture puzzles in 2D](https://boubou666.github.io/CubeCubeCube/image.html)**
+
+**[Play the cube](https://boubou666.github.io/CubeCubeCube/cube.html)** · **[Play Colony](https://boubou666.github.io/CubeCubeCube/colony.html)**
 
 **[Changelog](CHANGELOG.md)** · **[Releases](https://github.com/boubou666/CubeCubeCube/releases)**
 
@@ -32,7 +34,7 @@ npm install
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. The first 28 puzzles introduce the rules, mechanics, and shapes. Puzzle 29 begins a virtually unlimited generated journey. Choose **The collection** to browse opening puzzles by family, start or resume the journey, browse pages, or jump to a puzzle number. Finishing a puzzle always leads to the next one.
+Open **http://127.0.0.1:5173** and choose a game from the home cards. The cube is at `cube.html`; its existing progress remains intact. Its first 28 puzzles introduce the rules, mechanics, and shapes. Puzzle 29 begins a virtually unlimited generated journey. Choose **The collection** to browse opening puzzles by family, start or resume the journey, browse pages, or jump to a puzzle number. Finishing a puzzle always leads to the next one.
 
 ## Endless progression
 
@@ -87,6 +89,10 @@ The tests verify the 28 opening solutions and generated samples across early, la
 
 ## Structure
 
+- `src/home-main.js`, `src/home-style.css`: illustrated home cards and links to each independent game.
+- `src/colony-puzzle.js`: outside-space reachability, color quotas, guaranteed-solution level construction, five-slot simulation, hints, undo, and validated saves.
+- `src/colony-scene.js`: Three.js pixel cubes, original ant meshes, path-following pickup/return animation, and a garden tray.
+- `src/colony-main.js`, `src/colony-style.css`: Colony controls, queues, collection, responsive layouts, and independent local-storage progress.
 - `src/puzzle.js`: discrete surface topology for cubes and voxel solids, branching arrows, movement rules, seeded level generation, solution search, and game state. No Three.js or DOM dependencies.
 - `src/mechanics.js`: pressure occupancy, gates, fixed and alternating turns, rigid section rotation, transactional movement, stateful solution search, and mechanic lesson layouts.
 - `src/parking.js`: audited circle dependency patterns, tier selection, and seeded surface placement.
@@ -110,3 +116,15 @@ Tap an arrow to release it. Blocked paths are outlined, and **H** highlights a c
 The picture page uses Canvas 2D and a small module Worker, and does not load Three.js. Its modules are `src/image-puzzle.js` (rules and generation), `src/image-scene.js` (rendering and picking), `src/image-main.js` (import/crop and UI), `src/image-worker.js` (generation), and `src/image-storage.js` (local persistence). Both HTML entry points are included in GitHub Pages and release builds.
 
 The game implements the described mechanics with its own branding, art, and levels. It does not reproduce CubeAway's complete level catalog or special power-ups. WebGL is required; all assets and dependencies are served locally, with no CDN requests.
+
+## Colony (3D)
+
+Open `colony.html`, choose **Colony** from either game's navigation, or use its home card. This original implementation takes inspiration from [Colony Flow's color-box and ant collection mechanics](https://play.google.com/store/apps/details?id=com.abi.colony.flow). The artwork, levels, interface and models are created for this project.
+
+Select the top box of one of four queues. It occupies one of five active slots and sends up to four workers to cubes of its color. Only cubes adjacent to outside-connected empty space are accessible; enclosed holes remain blocked. Workers follow those empty corridors, remove a cube on arrival and carry it back. The box counter decreases on delivery, and a filled box releases its slot. Boxes whose color is still buried wait. Five waiting boxes cause a deadlock; undo is always available.
+
+Six 16×16 original pictures introduce the game: a plant, mushroom, fox, rocket, ice cream and flower. Later numbered puzzles add borders and smaller color quotas. Reserves are generated from a complete legal harvest sequence, with exact totals for every color. The collection shows twelve puzzles around the current journey page, and a number field allows jumping up to puzzle 1,000,000.
+
+Use **Un petit indice** for a move verified by a bounded state search, **Annuler** to restore the complete previous state, and **Recommencer** to reset the same puzzle. Pause and ×2 change the animation pace. H asks for a hint, Enter sends the indicated box, U undoes, R restarts, 1–4 choose a queue, and Space pauses when the canvas is focused. Dialogs and hidden tabs suspend simulation.
+
+Colony uses its own versioned local-storage key. Saves include queue positions, active boxes, trips in progress, undo states, completed puzzles and speed. Invalid saves fall back to the first puzzle. Storage failures do not prevent playing. Cube and picture progress remain independent. The static build includes `index.html`, `cube.html`, `image.html` and `colony.html`, with links compatible with the configured GitHub Pages base path.
