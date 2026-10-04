@@ -9,6 +9,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Separate 2D picture puzzles: upload, paste, drop, or import a CORS-enabled direct image URL, then crop and generate a playable image.
+- Pixel-sampled colours along each arrow, colour-aware path placement, complete visible-cell coverage, and guaranteed solutions by forward peeling.
+- Three difficulty and detail settings, alternate seeded arrangements, original-image comparison, zoom/pan, keyboard hints, undo, restart, and completion.
+- Local image processing in a Web Worker and separate IndexedDB image/progress saves; the cube journey stays independent.
 - 38 distinct circle-parking layouts with dependent groups, opposite-head choices, and coordinated forks; later tiers require up to seven parking moves.
 - Stateful hints for generated parking groups and a dedicated circle challenge throughout the endless journey.
 - Pressure buttons that pause arrowheads and hold matching gates open until the head leaves.

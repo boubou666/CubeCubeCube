@@ -30,6 +30,7 @@ document.querySelector('#app').innerHTML = `
   <header class="topbar">
     <a class="brand" href="${import.meta.env.BASE_URL}" aria-label="Cube Cube Cube home">${cubeMark}<span>cube<span>cube</span>cube</span><span class="brand-note">A small escape.</span></a>
     <nav class="topnav" aria-label="Game controls">
+      <a class="picture-mode-link" aria-label="Picture puzzles" href="${import.meta.env.BASE_URL}image.html"><span class="picture-mode-long">Picture puzzles</span><span class="picture-mode-short">Pictures</span></a>
       <button id="levels-button" class="collection-button">${icon('grid')}<span>The collection</span><span id="collection-count">01 / ∞</span></button>
       <div class="nav-divider"></div>
       <button id="sound-button" class="icon-button" aria-label="Turn sound on" aria-pressed="false" title="Sound">${icon('muted')}</button>

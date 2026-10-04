@@ -4,6 +4,8 @@ A relaxing, original browser puzzle inspired by CubeAway's arrow-clearing idea. 
 
 **[Play online](https://boubou666.github.io/CubeCubeCube/)** · **[Source code](https://github.com/boubou666/CubeCubeCube)**
 
+**[Play picture puzzles in 2D](https://boubou666.github.io/CubeCubeCube/image.html)**
+
 **[Changelog](CHANGELOG.md)** · **[Releases](https://github.com/boubou666/CubeCubeCube/releases)**
 
 ## Publishing
@@ -94,5 +96,17 @@ The tests verify the 28 opening solutions and generated samples across early, la
 - `src/style.css`: desktop and touch layouts, dialogs, and reduced-motion support.
 
 The opening puzzle and mechanic tutorials are handcrafted. Larger boards use fixed, audited seeds. Generation constructs arrows in reverse removal order, so every selected board has a complete solution. On boards without circles, picking any removable arrow cannot introduce a deadlock because removal only clears occupied cells. Circle puzzles can change occupancy; hints search board states to find the next move in a complete solution.
+
+## Picture puzzles (2D)
+
+Open `image.html`, or choose **Picture puzzles** from the cube game. A sample landscape is playable immediately. Upload a photo or screenshot, drop an image, paste with Ctrl+V / Command+V, or use the clipboard button. Direct image links work when the source allows CORS; webpage links require uploading a screenshot for this first version. There is no screenshot backend.
+
+Drag in the preview to select a crop, or choose Whole image, Square, Portrait, or Wide. Choose Gentle, Thoughtful, or Tangled difficulty and Soft, Balanced, or Fine detail, then **Create puzzle**. **Try different paths** makes a fresh seeded arrangement of the same image. Restart keeps the current arrangement. All image processing and puzzle generation run locally; uploads are never sent to a server.
+
+The flat generator partitions visible image cells in removal order, growing tails into the remaining image while each new head has a clear exit. The construction order proves solvability, and any available removal keeps the puzzle solvable. Paths favour neighbouring colours and avoid strong colour boundaries. Each body segment and head samples the corresponding image pixels, retaining those colours during departure. Partial transparency is composited against white; fully transparent cells are left empty. Uploaded sources are resized to at most 1200 pixels on their longest edge and saved losslessly. Grid resolution follows the crop's aspect ratio, with a 72-cell limit per axis and a minimum of four cells for very thin crops.
+
+Tap an arrow to release it. Blocked paths are outlined, and **H** highlights a clear arrow; **Enter** releases the hint, **U** undoes, and **R** restarts. Scroll or pinch to zoom, drag to pan, and use **Fit** to centre the board. **Original** shows the cropped source image for comparison. Images, exact generated boards, and move history are saved in IndexedDB separately from the cube's local-storage progress. Invalid saves fall back to a fresh sample puzzle. File imports are limited to 15 MB and 40 megapixels.
+
+The picture page uses Canvas 2D and a small module Worker, and does not load Three.js. Its modules are `src/image-puzzle.js` (rules and generation), `src/image-scene.js` (rendering and picking), `src/image-main.js` (import/crop and UI), `src/image-worker.js` (generation), and `src/image-storage.js` (local persistence). Both HTML entry points are included in GitHub Pages and release builds.
 
 The game implements the described mechanics with its own branding, art, and levels. It does not reproduce CubeAway's complete level catalog or special power-ups. WebGL is required; all assets and dependencies are served locally, with no CDN requests.
