@@ -17,6 +17,13 @@
 .game-preview svg { height: 100%; width: 100%; }
 .game-card.pictures .game-preview { background: #e8eeeb; }
 .game-card.colony .game-preview { background: #efeddf; }
+.game-card.atelier .game-preview { background: #edeadd; }
+.game-card.bobines .game-preview { background: #f0e9e4; }
+.game-card.escapade .game-preview { background: #e7eddc; }
+.game-card.passages .game-preview { background:#e9ecdf; }
+.game-card.voyage .game-preview { background:#edf0e5; }
+.game-card.carrousel .game-preview { background:#e6ece4; }
+.game-card.broderie .game-preview { background:#f0e9e2; }
 .game-number { position: absolute; top: 20px; left: 21px; color: #879680; font-size: 9px; letter-spacing: 1px; }
 .game-tag { position: absolute; right: 15px; top: 16px; background: #fffdf6a8; border: 1px solid #d8ddcc; padding: 6px 8px; border-radius: 14px; font-size: 7px; letter-spacing: .6px; color: #6e826f; }
 .game-card-content { padding: 25px; }
