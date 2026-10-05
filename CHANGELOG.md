@@ -7,6 +7,22 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-05
+
+### Added
+
+- Ruisseaux: sliding fixed-orientation canals, matching water ports, flower coverage, fixed endpoints and stone obstacles.
+- Balancier: a real gravity and rope-tension pendulum, precisely timed cuts, petal collection and basket landings, with free pause and verified-time hints.
+- Gelées: quarter-turn shapes, vertical drops, finite reserves and overhang-sensitive pot filling, accompanied by welded spring settling animations.
+- 48 distinct deterministic levels per game and 144 new audited puzzles. The collection now has 27 games and the twenty-four independent additions contain 1,152 puzzles.
+- Independent action-replay saves, exact undo, four accessible chapters, optional sound, reduced motion, mouse/native touch, keyboard/sidebar alternatives and three original illustrations.
+- All 28 HTML entry points in production and portable builds, with complete solution/hint audits and real responsive gameplay checks.
+
+### Fixed
+
+- Sliding-canal hint routes remove repeated-state detours before caching their remaining moves.
+- Berry collision resolution ejects a center inside a stone along the nearest face.
+
 ## [0.4.0] - 2026-10-05
 
 ### Added
@@ -105,7 +121,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...v0.2.0

@@ -32,6 +32,6 @@ for(const mode of modes){
 }
 test('twenty-four home illustrations open the four additional games and return to the collection',async({page})=>{
   await mkdir('.local/screenshots',{recursive:true});
-  for(const width of [1440,390,320]){await page.setViewportSize({width,height:1000});await page.goto('/');await expect(page.locator('.game-card')).toHaveCount(24);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);if(width!==320)await page.screenshot({path:`.local/screenshots/ten-games-${width}.png`,fullPage:true});}
-  for(const [name,mode]of [['Passages','passages'],['Voyage','voyage'],['Carrousel','carrousel'],['Broderie','broderie']]){await page.getByRole('link',{name:`Jouer à ${name}`,exact:true}).click();await ready(page);await expect(page).toHaveURL(new RegExp(`/${mode}\\.html$`));await page.getByRole('link',{name:'Les jeux',exact:true}).click();await expect(page.locator('.game-card')).toHaveCount(24);}
+  for(const width of [1440,390,320]){await page.setViewportSize({width,height:1000});await page.goto('/');await expect(page.locator('.game-card')).toHaveCount(27);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);if(width!==320)await page.screenshot({path:`.local/screenshots/ten-games-${width}.png`,fullPage:true});}
+  for(const [name,mode]of [['Passages','passages'],['Voyage','voyage'],['Carrousel','carrousel'],['Broderie','broderie']]){await page.getByRole('link',{name:`Jouer à ${name}`,exact:true}).click();await ready(page);await expect(page).toHaveURL(new RegExp(`/${mode}\\.html$`));await page.getByRole('link',{name:'Les jeux',exact:true}).click();await expect(page.locator('.game-card')).toHaveCount(27);}
 });
