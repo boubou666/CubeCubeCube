@@ -7,6 +7,33 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-05
+
+### Added
+
+- Eighteen independent original puzzle games, each with 48 distinct deterministic levels and complete audited solutions: 864 new puzzles and 21 games on the illustrated home page.
+- Atelier (3D screws and color boxes), Bobines (thread collection and waiting slots), and Escapade (creatures guided by either end to matching exits).
+- Passages (sliding blocks and matching doors), Voyage (passengers, buses and five waiting seats), Carrousel (pixel cleanup and returning shooters), and Broderie (layered spools and triple-color embroidery).
+- Alvéoles (hexagonal stack gathering and six-tile cascades), Potions (capacity-limited color pours), and Liaisons (non-crossing paths filling the grid).
+- Nœuds (rope attachments, crossings and fixed anchors) and Gouttes (drawn ramps, gravity-driven water, obstacles and glass filling).
+- Écluses (pin openings, ball coloring and bombs), Dunes (granular gravity and color bands spanning a tray), and Fringale (a growing hole, food sizes and narrow passages).
+- Récolte (same-color chains and vertical gravity), Dizaines (equal or ten-sum number pairs with free sightlines), and Mosaïque (finite shape trios and simultaneous row/column clearing).
+- Four chapter collections, independent validated replay saves, exact undo, restart, verified hints, optional sound, reduced-motion support and native mouse/touch plus alternative controls for every new game.
+- Original scenes and home illustrations, reuse of collection art as pixel/cross-stitch pictures, animated boarding and conveyor laps, and water/sand simulations shared by live play and solution audits.
+- All 22 HTML entry points included in production and portable builds; resource conservation, collision/failure recovery, malformed-action/save and responsive real-browser gameplay coverage.
+- 18 original Colony pictures, bringing its collection to 24 motifs and a 96-puzzle opening journey.
+- Five Colony difficulty chapters, larger boards, nested color layers, cooperating teams, paged collections, difficulty badges and seeded reserve variation beyond the opening journey.
+
+### Changed
+
+- Pull requests run the full puzzle/browser/build checks without deploying. Branch-specific workflow concurrency keeps reviews from cancelling a live Pages deployment.
+- Colony sends one worker for every available matching cube, up to the remaining quota, with no four-worker cap.
+- Ants use shared instanced meshes so large swarms keep a small number of draw calls. Colony hint search has a time budget to keep difficult positions responsive.
+
+### Fixed
+
+- Colony save migration preserves legacy boards, ongoing trips, undo and completion records when moving to the expanded journey.
+
 ## [0.2.0] - 2026-10-04
 
 ### Changed
@@ -66,6 +93,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/boubou666/CubeCubeCube/releases/tag/v0.1.0

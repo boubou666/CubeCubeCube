@@ -1,11 +1,21 @@
 // Discrete rules, level construction and saves. No renderer or browser dependencies.
+import { NEW_COLONY_ART, ART_COLORS } from './colony-art.js';
 export const COLORS = {
   moss: { name: 'Sauge', hex: '#97b896' }, cream: { name: 'Crème', hex: '#f4dfaa' },
   coral: { name: 'Corail', hex: '#e6816c' }, gold: { name: 'Miel', hex: '#efbe57' },
   plum: { name: 'Prune', hex: '#77628e' }, sky: { name: 'Azur', hex: '#84b9ce' },
   ink: { name: 'Encre', hex: '#344b4a' }, leaf: { name: 'Feuille', hex: '#547f63' },
 };
-export const MOTIFS = ['La petite pousse', 'Un coin de forêt', 'À pas de renard', 'Le grand départ', 'La pause sucrée', 'Au cœur du jardin'];
+const CLASSIC_MOTIFS = ['La petite pousse', 'Un coin de forêt', 'À pas de renard', 'Le grand départ', 'La pause sucrée', 'Au cœur du jardin'];
+export const MOTIFS = [...CLASSIC_MOTIFS, ...NEW_COLONY_ART.map(art => art.title)];
+export const COLONY_DIFFICULTIES = [
+  { name: 'Découverte', start: 0, copy: 'Apprenez les couleurs et les cinq places.' },
+  { name: 'Malin', start: 6, copy: 'Nouvelles images, couleurs mêlées et premières boîtes à faire patienter.' },
+  { name: 'Corsé', start: 24, copy: 'Des couronnes colorées ferment les passages. Coordonnez plusieurs équipes.' },
+  { name: 'Difficile', start: 48, copy: 'Plus de couleurs et des boîtes réparties entre plusieurs couches.' },
+  { name: 'Expert', start: 72, copy: 'Des réserves entrelacées. Gardez une place pour la couleur qui débloquera les autres.' },
+];
+export const colonyDifficulty = index => COLONY_DIFFICULTIES.findLast(d => index >= d.start);
 export const SAVE_KEY = 'cubecubecube-colony-v1';
 const copy = value => JSON.parse(JSON.stringify(value));
 const validIndex = n => Number.isSafeInteger(n) && n >= 0 && n < 1000000;
@@ -84,15 +94,15 @@ export function reachable(level, remaining, color, reserved = new Set(), paths =
   return null;
 }
 
-export function createColonyLevel(index = 0) {
+export function createLegacyColonyLevel(index = 0) {
   if (!validIndex(index)) throw new RangeError('Invalid colony level');
-  const motif = index % MOTIFS.length, tier = Math.floor(index / MOTIFS.length), size = 16;
+  const motif = index % CLASSIC_MOTIFS.length, tier = Math.floor(index / CLASSIC_MOTIFS.length), size = 16;
   const cells = Array.from({ length: size * size }, (_, id) => {
     const x = id % size, y = Math.floor(id / size);
     // Later journeys add a contrasting border, preserving each picture.
     return tier > 0 && (x === 0 || y === 0 || x === 15 || y === 15) ? ['gold', 'ink', 'plum'][tier % 3] : pixel(motif, x, y);
   });
-  const level = { index, width: size, height: size, cells, title: MOTIFS[motif], queues: [[], [], [], []], solution: [] };
+  const level = { index, generation: 1, width: size, height: size, cells, title: CLASSIC_MOTIFS[motif], queues: [[], [], [], []], solution: [] };
   const remaining = cells.map((_, id) => id), quota = Math.max(12, 40 - tier * 4), colors = Object.keys(COLORS);
   let last = null;
   while (remaining.length) {
@@ -108,6 +118,66 @@ export function createColonyLevel(index = 0) {
     const queue = level.solution.length % 4, id = level.solution.length;
     level.queues[queue].push({ id, color, count }); level.solution.push(queue); last = color;
   }
+  return level;
+}
+
+const levelCache = new Map();
+function randomSeed(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s + 0x6d2b79f5) >>> 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function buildReserves(level, rank, random) {
+  const game = new ColonyGame(level), unassigned = Object.fromEntries(Object.keys(COLORS).map(color => [color, level.cells.filter(c => c === color).length]));
+  const targetWaiting = rank, quota = [40, 26, 20, 16, 12][rank];
+  let waitingMoves = 0, maxOccupied = 0;
+  while (!game.won) {
+    const paths = outsidePaths(level, game.state.remaining);
+    const choices = Object.keys(COLORS).filter(color => unassigned[color] && reachable(level, game.state.remaining, color, new Set(), paths));
+    if (!choices.length || !game.state.slots.includes(null)) throw new Error('Invalid reserve construction');
+    const color = choices[Math.floor(random() * choices.length)], remaining = [...game.state.remaining];
+    let accessible = 0;
+    while (accessible < unassigned[color]) {
+      const target = reachable(level, remaining, color); if (!target) break;
+      remaining.splice(remaining.indexOf(target.id), 1); accessible++;
+    }
+    const waiting = game.state.slots.filter(Boolean).length;
+    // A long quota crosses a colour boundary and waits for another team.
+    // Once the waiting budget is reached, a safely fillable box keeps a slot free.
+    const count = waiting < targetWaiting ? Math.min(unassigned[color], accessible + Math.max(1, Math.floor(quota / 3))) : Math.min(unassigned[color], accessible, quota + (rank === 0 ? 0 : Math.floor(random() * 5)));
+    const shortest = Math.min(...level.queues.map(q => q.length));
+    const queues = [0, 1, 2, 3].filter(q => level.queues[q].length <= shortest + 1), queue = rank === 0 ? level.solution.length % 4 : queues[Math.floor(random() * queues.length)];
+    const id = level.solution.length; level.queues[queue].push({ id, color, count }); level.solution.push(queue); unassigned[color] -= count;
+    if (!game.launch(queue)) throw new Error('Invalid reserve launch');
+    maxOccupied = Math.max(maxOccupied, game.state.slots.filter(Boolean).length);
+    game.settle(); if (game.state.slots.some(Boolean)) waitingMoves++;
+  }
+  return { waitingMoves, maxOccupied, boxes: level.solution.length, colors: new Set(level.cells).size };
+}
+export function createColonyLevel(index = 0, generation = 2) {
+  if (!validIndex(index)) throw new RangeError('Invalid colony level');
+  if (generation === 1) return createLegacyColonyLevel(index);
+  if (generation !== 2) throw new RangeError('Invalid colony generation');
+  if (levelCache.has(index)) return levelCache.get(index);
+  const motif = index % MOTIFS.length, cycle = Math.floor(index / MOTIFS.length), rank = COLONY_DIFFICULTIES.indexOf(colonyDifficulty(index));
+  const random = randomSeed(Math.imul(index + 1, 2654435761)), border = [0, 2, 3, 3, 4][rank], size = 16 + border * 2;
+  const frameColors = ['ink', 'gold', 'plum', 'sky', 'coral', 'leaf'], offset = Math.floor(random() * frameColors.length);
+  const picture = Array.from({ length: 256 }, (_, id) => {
+    const x = id % 16, y = Math.floor(id / 16), px = cycle % 2 ? 15 - x : x;
+    if (motif < 6) return pixel(motif, px, y);
+    const art = NEW_COLONY_ART[motif - 6]; return ART_COLORS[art.rows[y][px]] || art.background;
+  });
+  const pictureColors = [...new Set(picture)].sort((a, b) => picture.filter(c => c === b).length - picture.filter(c => c === a).length);
+  const rings = [pictureColors[0], pictureColors[1], rank < 3 ? pictureColors[0] : pictureColors[2] || frameColors[offset], frameColors.find(c => !pictureColors.slice(0, 3).includes(c))];
+  const cells = Array.from({ length: size * size }, (_, id) => {
+    const x = id % size, y = Math.floor(id / size), depth = Math.min(x, y, size - 1 - x, size - 1 - y);
+    if (depth < border) return rings[depth];
+    // Expert frames can vary their accents without obscuring the illustration.
+    if (rank === 4 && depth === border && (x + y + index) % 7 === 0) return frameColors[(offset + x + y) % frameColors.length];
+    return picture[(y - border) * 16 + x - border];
+  });
+  const level = { index, generation: 2, width: size, height: size, cells, title: MOTIFS[motif], queues: [[], [], [], []], solution: [] };
+  level.pressure = buildReserves(level, rank, random);
+  levelCache.set(index, level); if (levelCache.size > 36) levelCache.delete(levelCache.keys().next().value);
   return level;
 }
 
@@ -143,7 +213,7 @@ export class ColonyGame {
     s.slots.forEach((box, slot) => {
       if (!box) return;
       const live = s.jobs.filter(j => j.slot === slot).length;
-      for (let i = live; i < Math.min(4, box.remaining); i++) {
+      for (let i = live; i < box.remaining; i++) {
         const target = reachable(this.level, s.remaining, box.color, reserved, paths);
         if (!target) break;
         reserved.add(target.id);
@@ -156,13 +226,13 @@ export class ColonyGame {
   settle() { for (let i = 0; i < this.level.cells.length * 2; i++) { this.advance(100); if (!this.state.jobs.length) break; } return this; }
   get stalled() { return !this.won && !this.state.jobs.length && this.state.slots.every(Boolean) && !this.state.slots.some(b => reachable(this.level, this.state.remaining, b.color)); }
   undo() { if (!this.history.length) return false; this.state = this.history.pop(); return true; }
-  hint(limit = 2500) {
+  hint(limit = 2500, timeLimit = 300) {
     const settled = new ColonyGame(this.level, this.state).settle();
     if (settled.won) return { type: 'wait' };
-    const seen = new Set(); let visited = 0;
+    const seen = new Set(), deadline = performance.now() + timeLimit; let visited = 0, exhausted = false;
     const search = game => {
       if (game.won) return [];
-      if (++visited > limit) return null;
+      if (++visited > limit || performance.now() > deadline) { exhausted = true; return null; }
       const s = game.state, key = `${s.cursors}|${s.slots.map(b => b ? `${b.color}:${b.remaining}` : '-')}|${s.remaining.join(',')}`;
       if (seen.has(key)) return null; seen.add(key);
       if (!s.slots.includes(null)) return null;
@@ -170,22 +240,23 @@ export class ColonyGame {
         if (!game.heads[q]) continue;
         const next = new ColonyGame(this.level, s); next.launch(q); next.settle();
         const rest = search(next); if (rest) return [q, ...rest];
+        if (exhausted) break;
       }
       return null;
     };
     const path = search(settled);
     if (path?.length) return this.state.slots.includes(null) ? { type: 'box', queue: path[0] } : { type: 'wait' };
-    return this.state.jobs.length ? { type: 'wait' } : visited > limit ? { type: 'unknown' } : { type: 'undo' };
+    return this.state.jobs.length ? { type: 'wait' } : exhausted ? { type: 'unknown' } : { type: 'undo' };
   }
 }
 
 export function encodeColonySave(game, completed = [], speed = 1) {
-  return { version: 1, index: game.level.index, state: copy(game.state), history: copy(game.history), completed: completed.filter(validIndex), speed: speed === 2 ? 2 : 1 };
+  return { version: 2, generation: game.level.generation || 2, index: game.level.index, state: copy(game.state), history: copy(game.history), completed: completed.filter(validIndex), speed: speed === 2 ? 2 : 1 };
 }
 export function decodeColonySave(raw) {
   try {
-    if (!raw || raw.version !== 1 || !validIndex(raw.index)) return null;
-    const level = createColonyLevel(raw.index), game = new ColonyGame(level);
+    if (!raw || ![1, 2].includes(raw.version) || !validIndex(raw.index) || raw.version === 2 && ![1, 2].includes(raw.generation)) return null;
+    const level = createColonyLevel(raw.index, raw.version === 1 ? 1 : raw.generation), game = new ColonyGame(level);
     const validate = state => {
       if (!state || !Array.isArray(state.remaining) || !Array.isArray(state.cursors) || state.cursors.length !== 4 || !Array.isArray(state.slots) || state.slots.length !== 5 || !Array.isArray(state.jobs) || !Array.isArray(state.launched) || !Number.isSafeInteger(state.serial) || state.serial < 0) return false;
       if (state.cursors.some((n, q) => !Number.isInteger(n) || n < 0 || n > level.queues[q].length)) return false;
