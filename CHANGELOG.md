@@ -7,6 +7,18 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-05
+
+### Added
+
+- Étagères: visible goods moved into empty shelf slots, triple-product clearing, hidden rows and deeper reserves.
+- Duos: matching illustrated pairs connected through free cells with at most two turns, including outside-border paths and fixed stones.
+- Terriers: hand-carved soil, fixed rocks, shovel budgets, gravity-driven colored balls and matching cups; live physics shares the exact simulation used by solution audits.
+- 48 distinct deterministic levels per game, 144 new audited puzzles, four chapters per collection and original home illustrations. The collection now has 24 games and the twenty-one additions contain 1,008 puzzles.
+- Independent replay saves, exact undo, verified hints, optional sound, reduced-motion support, mouse/native touch play and sidebar or coordinate alternatives for all three games.
+- All 25 HTML entry points in production and portable builds; conservation, route geometry, physical trial recovery, save corruption and real responsive-browser checks.
+
+
 ## [0.3.0] - 2026-10-05
 
 ### Added
@@ -93,7 +105,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/boubou666/CubeCubeCube/releases/tag/v0.1.0
