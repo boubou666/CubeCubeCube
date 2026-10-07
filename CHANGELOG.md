@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-07
+
+### Added
+
+- Bascules: roll a two-cell stone in an original isometric garden. Upright and lying footprints, fragile tiles, open voids, soft and upright-only switches and actual toggleable bridges determine legal moves. The visual stone rolls rigidly around its real support edge.
+- Sillons: swipe a brush cube until a wall, border or halt, coloring every crossed cell. Later gardens add directional departures. Each whole stroke is one undoable action; hints verify a complete remaining route.
+- Raccords: move and rotate colored connection pieces into one closed constellation. Six movement permissions include fixed, pivot, movable, free and two horizontal-rail variants. All colored ports must match and separate closed islands cannot win.
+- 48 deterministic levels in four open chapters per game, 144 new puzzles, independent replay saves, free hints, exact undo, original illustrations and mouse/touch plus accessible keyboard/sidebar controls. The collection now contains 36 games and 1,584 puzzles across its thirty-three independent additions.
+- 37 HTML entry points in public and portable builds; representative rule audits and real browser checks for native gestures, cancelled input, animation undo, first/expert completion and desktop/390px/320px layouts.
+
+### Changed
+
+- Detailed default browser coverage rotates to the latest three games. Every campaign still receives a real action/reload/undo smoke check; shared input and physics regressions remain required. Exhaustive campaign and browser audits remain opt-in.
+
 ## [0.7.0] - 2026-10-07
 
 ### Added
@@ -154,7 +168,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...v0.5.0
