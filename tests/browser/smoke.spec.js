@@ -6,11 +6,11 @@ test('@smoke every campaign opens from home, executes a hint, reloads and undoes
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await expect(page.locator('.game-card')).toHaveCount(39);
+  await expect(page.locator('.game-card')).toHaveCount(42);
   const links = await page.locator('.game-card a[aria-label]').evaluateAll(nodes => nodes
     .map(node => ({ url: node.href, name: node.getAttribute('aria-label') }))
     .filter(node => !/\/(cube|image|colony)\.html$/.test(node.url)));
-  expect(links).toHaveLength(36);
+  expect(links).toHaveLength(39);
   for (const { url, name } of links) {
     await test.step(name, async () => {
       expect((await page.goto(url)).status()).toBe(200);
