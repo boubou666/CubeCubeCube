@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PocketGame,clone,encodePocket,decodePocket} from '../src/pocket-core.js';
@@ -7,14 +8,14 @@ import {aiguillagesRules} from '../src/aiguillages-puzzle.js';
 import {RailFlow,simulateRails} from '../src/rail-simulation.js';
 const modes={plis:plisRules,lucioles:luciolesRules,aiguillages:aiguillagesRules};
 for(const [name,rules] of Object.entries(modes)){
-  test(`${name}: 48 distinct deterministic initial puzzles, full solutions, conservation and exact undo`,()=>{
-    const unique=new Set();for(let index=0;index<48;index++){const g=new PocketGame(rules,index),initial=clone(g.state);assert.deepEqual(rules.create(index),g.level);assert.equal(g.won,false);unique.add(JSON.stringify({...g.level,index:0,title:'',solution:[]}));for(const a of g.level.solution){const old=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);if(name==='plis')assert.deepEqual(g.state.field.flat().map(p=>p[0]).sort((a,b)=>a-b),initial.field.flat().map(p=>p[0]).sort((a,b)=>a-b));if(name==='aiguillages'&&g.state.result)assert.equal(g.state.result.caught+g.state.result.lost,g.level.trains.length);assert.ok(g.undo());assert.deepEqual(g.state,old);assert.ok(g.play(a));}assert.ok(g.won,`${name} ${index}`);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,48);
+  test(`${name}: distinct sampled deterministic initial puzzles, full solutions, conservation and exact undo`,()=>{
+    const unique=new Set();for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index),initial=clone(g.state);assert.deepEqual(rules.create(index),g.level);assert.equal(g.won,false);unique.add(JSON.stringify({...g.level,index:0,title:'',solution:[]}));for(const a of g.level.solution){const old=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);if(name==='plis')assert.deepEqual(g.state.field.flat().map(p=>p[0]).sort((a,b)=>a-b),initial.field.flat().map(p=>p[0]).sort((a,b)=>a-b));if(name==='aiguillages'&&g.state.result)assert.equal(g.state.result.caught+g.state.result.lost,g.level.trains.length);assert.ok(g.undo());assert.deepEqual(g.state,old);assert.ok(g.play(a));}assert.ok(g.won,`${name} ${index}`);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,CAMPAIGN_SAMPLE.length);
   });
   test(`${name}: validated saves reconstruct every action, history and earned badges`,()=>{
     const g=new PocketGame(rules,47);for(const a of g.level.solution.slice(0,2))assert.ok(g.play(a));const saved=encodePocket(g,new Set([0,47]),true),restored=decodePocket(rules,saved);assert.deepEqual(restored.game.state,g.state);assert.deepEqual(restored.game.history,g.history);assert.deepEqual([...restored.completed],[0,47]);assert.equal(restored.sound,true);g.undo();restored.game.undo();assert.deepEqual(g.state,restored.game.state);assert.equal(decodePocket(rules,{...saved,moves:[{bad:true}]}),null);assert.equal(decodePocket(rules,{...saved,index:48}),null);
   });
-  test(`${name}: verified hints finish all 48 boards`,()=>{
-    for(let index=0;index<48;index++){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<60){const h=g.hint();assert.ok(h?.action!==undefined,`${index}`);assert.ok(g.play(h.action));}assert.ok(g.won,`${index}`);}
+  test(`${name}: verified hints finish sampled boards`,()=>{
+    for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<60){const h=g.hint();assert.ok(h?.action!==undefined,`${index}`);assert.ok(g.play(h.action));}assert.ok(g.won,`${index}`);}
   });
 }
 test('plis: a fold reflects the whole half, reverses every layer and flips recto/verso',()=>{

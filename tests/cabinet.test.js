@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PocketGame,clone,encodePocket,decodePocket} from '../src/pocket-core.js';
@@ -12,14 +13,14 @@ function conservation(name,g){const {level:l,state:s}=g;
   if(name==='terriers'){assert.equal(s.soil.filter(v=>v===1).length+s.removed,l.soil.filter(v=>v===1).length);assert.ok(s.removed<=l.budget);l.soil.forEach((v,id)=>{if(v===2)assert.equal(s.soil[id],2);});if(s.result)assert.equal(s.result.caught+s.result.lost+s.result.remaining,l.balls.length);}
 }
 for(const [name,rules] of Object.entries(modes)){
-  test(`${name}: 48 distinct deterministic solutions conserve resources and restore every move exactly`,()=>{
-    const unique=new Set();for(let index=0;index<48;index++){const g=new PocketGame(rules,index),initial=clone(g.state);unique.add(JSON.stringify({...g.level,index:0,title:''}));assert.deepEqual(rules.create(index),g.level);assert.equal(g.won,false);conservation(name,g);for(const a of g.level.solution){const old=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);conservation(name,g);assert.ok(g.undo());assert.deepEqual(g.state,old);assert.ok(g.play(a));}assert.ok(g.won);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,48);
+  test(`${name}: distinct sampled deterministic solutions conserve resources and restore every move exactly`,()=>{
+    const unique=new Set();for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index),initial=clone(g.state);unique.add(JSON.stringify({...g.level,index:0,title:''}));assert.deepEqual(rules.create(index),g.level);assert.equal(g.won,false);conservation(name,g);for(const a of g.level.solution){const old=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);conservation(name,g);assert.ok(g.undo());assert.deepEqual(g.state,old);assert.ok(g.play(a));}assert.ok(g.won);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,CAMPAIGN_SAMPLE.length);
   });
   test(`${name}: saves replay actions and undo history, reject malformed data and preserve badges`,()=>{
     const g=new PocketGame(rules,47);for(const a of g.level.solution.slice(0,3))assert.ok(g.play(a));const save=encodePocket(g,new Set([0,47]),true),decoded=decodePocket(rules,save);assert.deepEqual(decoded.game.state,g.state);assert.deepEqual(decoded.game.history,g.history);assert.deepEqual([...decoded.completed],[0,47]);assert.equal(decoded.sound,true);g.undo();decoded.game.undo();assert.deepEqual(decoded.game.state,g.state);assert.equal(decodePocket(rules,{...save,moves:[{nope:1}]}),null);assert.equal(decodePocket(rules,{...save,index:48}),null);
   });
   test(`${name}: verified hints finish all chapter boundaries`,()=>{
-    for(const index of [0,11,12,23,24,35,36,47]){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<100){const h=g.hint();assert.ok(h?.action!==undefined,`${index}`);assert.ok(g.play(h.action));}assert.ok(g.won);}
+    for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<100){const h=g.hint();assert.ok(h?.action!==undefined,`${index}`);assert.ok(g.play(h.action));}assert.ok(g.won);}
   });
 }
 test('etageres: complete triples clear, hidden rows require a completely empty front, occupied targets reject',()=>{
@@ -34,8 +35,8 @@ test('terriers: actual soil controls gravity, stones persist and identical excav
 test('terriers: budgets, failed trials, transactional strokes and clearing a custom tunnel',()=>{
   const g=new PocketGame(terriersRules,12),old=clone(g.state);for(const path of [[[0,0],[320,320]],[[320,100]],[[320,NaN],[320,400]]])assert.equal(g.play({type:'dig',path}),false);assert.deepEqual(g.state,old);assert.equal(terriersRules.move({...g.level,budget:1},g.state,g.level.solution[0]),null);assert.ok(g.play({type:'run'}));assert.equal(g.won,false);assert.ok(g.undo());assert.deepEqual(g.state,old);assert.ok(g.play({type:'dig',path:[[320,120],[320,260]]}));const plan=terriersRules.plan(g.level,g.state);assert.equal(plan[0].type,'clear');for(const a of plan)assert.ok(g.play(a));assert.ok(g.won);
 });
-test('terriers: every untouched level needs excavation; balls exchange impulses in a shared tunnel',()=>{
-  for(let index=0;index<48;index++){const l=terriersRules.create(index);assert.equal(simulateSoil(l,l.soil).caught,0);}
+test('terriers: sampled untouched levels need excavation; balls exchange impulses in a shared tunnel',()=>{
+  for(const index of CAMPAIGN_SAMPLE){const l=terriersRules.create(index);assert.equal(simulateSoil(l,l.soil).caught,0);}
   const l={balls:[{x:200,y:120,color:0},{x:213,y:120,color:1}],cups:[]},flow=new SoilFlow(l,Array(SOIL.cols*SOIL.rows).fill(0));flow.step();assert.ok(Math.hypot(flow.balls[0].x-flow.balls[1].x,flow.balls[0].y-flow.balls[1].y)>=SOIL.radius*2-.001);assert.equal(flow.caught+flow.lost,0);
 });
 test('alternate shelf and duo choices return a verified completion or exact undo',()=>{

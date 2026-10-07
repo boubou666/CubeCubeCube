@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PocketGame,clone,encodePocket,decodePocket} from '../src/pocket-core.js';
@@ -7,15 +8,15 @@ import {mosaiqueRules,activePieces} from '../src/mosaique-puzzle.js';
 const modes={recolte:recolteRules,dizaines:dizainesRules,mosaique:mosaiqueRules};
 function conservation(name,game){const {level:l,state:s}=game;if(name==='recolte')for(let color=0;color<8;color++)assert.equal(s.field.filter(v=>v===color).length+s.collected[color],l.quotas[color]);if(name==='dizaines')assert.equal(s.field.filter(v=>v!==null).length+s.pairs*2,l.total);if(name==='mosaique')assert.equal(s.field.filter(v=>v!==null).length+s.cleared,l.field.filter(v=>v!==null).length+s.added);}
 for(const [name,rules] of Object.entries(modes)){
-  test(`${name}: all 48 distinct deterministic levels have complete routes, exact undo and conserved resources`,()=>{
-    const unique=new Set();for(let i=0;i<48;i++){const g=new PocketGame(rules,i),before=clone(g.state);assert.deepEqual(g.level,rules.create(i));unique.add(JSON.stringify({...g.level,index:0,title:''}));assert.equal(g.won,false);conservation(name,g);for(const action of g.level.solution){assert.equal(g.won,false);const old=clone(g.state);assert.equal(g.play(action),true);conservation(name,g);assert.equal(g.undo(),true);assert.deepEqual(g.state,old);assert.equal(g.play(action),true);}assert.equal(g.won,true);while(g.undo()){}assert.deepEqual(g.state,before);}assert.equal(unique.size,48);
+  test(`${name}: sampled distinct deterministic levels have complete routes, exact undo and conserved resources`,()=>{
+    const unique=new Set();for(const i of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,i),before=clone(g.state);assert.deepEqual(g.level,rules.create(i));unique.add(JSON.stringify({...g.level,index:0,title:''}));assert.equal(g.won,false);conservation(name,g);for(const action of g.level.solution){assert.equal(g.won,false);const old=clone(g.state);assert.equal(g.play(action),true);conservation(name,g);assert.equal(g.undo(),true);assert.deepEqual(g.state,old);assert.equal(g.play(action),true);}assert.equal(g.won,true);while(g.undo()){}assert.deepEqual(g.state,before);}assert.equal(unique.size,CAMPAIGN_SAMPLE.length);
     assert.ok(rules.create(47).total>rules.create(0).total);
   });
   test(`${name}: saves restore exact actions, undo history and earned badges; bad moves reject`,()=>{
     const g=new PocketGame(rules,25);for(const a of g.level.solution.slice(0,3))assert.ok(g.play(a));const value=encodePocket(g,new Set([1,47]),true),read=decodePocket(rules,value);assert.deepEqual(read.game.state,g.state);assert.deepEqual(read.game.history,g.history);assert.deepEqual([...read.completed],[1,47]);assert.equal(read.sound,true);read.game.undo();g.undo();assert.deepEqual(read.game.state,g.state);assert.equal(decodePocket(rules,{...value,moves:[{invalid:true}]}),null);assert.equal(decodePocket(rules,{...value,index:48}),null);
   });
-  test(`${name}: hints finish every chapter boundary and remaining states`,()=>{
-    for(const index of [0,11,12,23,24,35,36,47]){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<100){const hint=g.hint();assert.ok(hint?.action!==undefined,`${name} ${index}`);assert.ok(g.play(hint.action));}assert.ok(g.won);}
+  test(`${name}: hints finish chapter boundaries and remaining states`,()=>{
+    for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index);let guard=0;while(!g.won&&guard++<100){const hint=g.hint();assert.ok(hint?.action!==undefined,`${name} ${index}`);assert.ok(g.play(hint.action));}assert.ok(g.won);}
   });
 }
 test('recolte: diagonal chains, minimum length, duplicate rejection, color quotas and vertical gravity',()=>{

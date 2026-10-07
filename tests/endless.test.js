@@ -1,10 +1,12 @@
 import test from 'node:test';
+import { EXHAUSTIVE_LEVELS } from './campaign-sample.js';
 import assert from 'node:assert/strict';
 import { LEVELS, DIRECTIONS, createLevel, levelMeta, surfaceLayout, arrowCells, key, step, availableMoves, travelRoute, solveWithStops, PuzzleGame } from '../src/puzzle.js';
 import { SAVE_KEY, readSave, writeSave, markCompleted, hasCompleted, completedCount } from '../src/storage.js';
 
 test('generated puzzles across early and distant tiers have valid surfaces and complete solutions', () => {
-  const ordinals = [...Array.from({ length: 40 }, (_, i) => i), 48, 72, 79, 127, 255, 1000, 1000000000, Number.MAX_SAFE_INTEGER - LEVELS.length - 2];
+  const opening = EXHAUSTIVE_LEVELS ? Array.from({ length: 40 }, (_, i) => i) : [0, 1, 7, 8, 15, 16, 23, 24, 31, 32, 39];
+  const ordinals = [...opening, 48, 72, 79, 127, 255, 1000, 1000000000, Number.MAX_SAFE_INTEGER - LEVELS.length - 2];
   for (const ordinal of ordinals) {
     const index = LEVELS.length + ordinal, level = createLevel(index), layout = surfaceLayout(level.size);
     const valid = new Set(layout.cells.map(key)), occupied = new Set();

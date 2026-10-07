@@ -7,6 +7,23 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-07
+
+### Added
+
+- Valises: freely place, rotate, reposition and remove original luggage silhouettes in irregular cases, with fixed sewn pockets, exact footprint collisions and verified packing hints. Actual silhouettes are visible in both reserves.
+- Sangles: route finite belts between fixed hooks and eyelets, then test cargo under steering and braking. A deterministic 120Hz simulator enforces parcel mass, momentum, wall/parcel/strap contacts and impact-driven belt breakage; the live scene uses the same physics as audited solutions.
+- Tracés: continuous graph drawing, revisitable vertices, one-way edges and double-passage quotas. A whole pointer/touch stroke is one undoable move; hints verify a complete continuation before suggesting the next edge.
+- 48 distinct deterministic levels per game and 144 new audited puzzles. The collection now has 33 games; the thirty independent additions contain 1,440 puzzles in four immediately accessible chapters each.
+- Independent validated saves, exact undo, free hints, original illustrations, optional sound, reduced motion, native mouse/touch and keyboard/sidebar controls.
+- All 34 HTML entry points in public and portable builds, with expert gameplay, physical trials, native touch, cancellation and 1440px/390px/320px browser checks.
+
+### Changed
+
+- Campaign solution and hint tests sample eight levels per 48-level game, including every chapter boundary; physics, save replay, undo and mechanical regressions retain dedicated checks. Cube browser completion samples eight representative puzzles instead of replaying all 28. Exhaustive rule audits remain available with `npm run test:levels:all`.
+- The default browser suite checks every campaign with one action, exact reload and undo, plus shared input/physics regressions and detailed scenarios for the latest games. Older full completion and repeated layout tours are opt-in with `npm run test:browser:all`.
+
+
 ## [0.6.0] - 2026-10-07
 
 ### Added
@@ -137,7 +154,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...v0.4.0

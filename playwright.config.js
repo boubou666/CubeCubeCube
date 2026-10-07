@@ -1,6 +1,8 @@
 import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/browser',
+  // Rotate @current to the latest additions; keep @core for shared regressions.
+  grep: process.env.BROWSER_ALL === '1' ? undefined : /@smoke|@core|@current/,
   timeout: process.env.CI ? 180000 : 90000,
   fullyParallel: false,
   workers: 1,

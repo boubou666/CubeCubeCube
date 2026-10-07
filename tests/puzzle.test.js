@@ -1,3 +1,4 @@
+import { CUBE_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FACES, FACE_NAMES, DIRECTIONS, LEVELS, key, step, createLevel, solve, solveWithStops, blockerIds, availableArrows, availableMoves, travelRoute, arrowCells, surfaceLayout, exitHitsSolid, PuzzleGame, hasMechanisms } from '../src/puzzle.js';
@@ -13,7 +14,8 @@ test('surface transitions are reciprocal on all twelve cube edges', () => {
   }
 });
 
-for (const [index, meta] of LEVELS.entries()) {
+for (const index of CUBE_SAMPLE) {
+  const meta = LEVELS[index];
   test(`level ${index + 1}: ${meta.title} has continuous non-overlapping paths and a full solution`, () => {
     const level = createLevel(index), occupied = new Set();
     assert.equal(level.arrows.length, meta.count);
@@ -77,7 +79,7 @@ test('an ordinary hole edge still checks arrows across the gap in physical space
 });
 
 test('choosing any available arrow preserves solvability', () => {
-  for (let index = 0; index < LEVELS.length; index++) {
+  for (const index of CUBE_SAMPLE) {
     const level = createLevel(index), removed = new Set();
     if (level.circles?.length || hasMechanisms(level)) continue;
     while (removed.size < level.arrows.length) {

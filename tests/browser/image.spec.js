@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/image.html');
   await page.waitForFunction(() => Boolean(window.__pictureDebug?.game) && !window.__pictureDebug.worker);
 });
-test('sample is a multicoloured puzzle; pointer blockers, hints, undo, restart and reload work', async ({ page }) => {
+test('@core sample is a multicoloured puzzle; pointer blockers, hints, undo, restart and reload work', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const level = await page.evaluate(() => window.__pictureDebug.game.level);
   expect(level.arrows.every(a => a.cells.length >= 5)).toBe(true);
