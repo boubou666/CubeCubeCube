@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.describe('@core mechanism-regression',()=>{
+
 test('every arrow type unlocks on generated button levels', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -134,4 +136,6 @@ test('hints complete dependent circle groups with three and seven required parks
     expect(await page.evaluate(() => window.__cubeDebug.game.remaining)).toBe(before.remaining - before.stats.arrowCount);
   }
   expect(errors).toEqual([]);
+});
+
 });

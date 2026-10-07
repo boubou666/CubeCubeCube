@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 
-test('home cards open each game and every game returns home', async ({ page }) => {
+test('@core home cards open each game and every game returns home', async ({ page }) => {
   await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(33);
   for (const [label, path, ready] of [['The cube', '/cube.html', '#remaining'], ['Picture puzzles', '/image.html', '#picture-canvas'], ['Colony', '/colony.html', '#colony-canvas']]) {
     await page.getByRole('link', { name: `Jouer à ${label}`, exact: true }).click();
@@ -10,7 +10,7 @@ test('home cards open each game and every game returns home', async ({ page }) =
     await page.locator('header a').first().click(); await expect(page.locator('.game-card')).toHaveCount(33);
   }
 });
-test('real boxes launch workers, transport cubes, pause, save and undo', async ({ page }) => {
+test('@core real boxes launch workers, transport cubes, pause, save and undo', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/colony.html'); await page.waitForFunction(() => Boolean(window.__colonyDebug));
   await expect(page.locator('#colony-remaining')).toHaveText('256');

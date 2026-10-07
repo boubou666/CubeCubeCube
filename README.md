@@ -84,10 +84,14 @@ Generator 3 adds the richer circle layouts. Saves from generators 1 and 2 keep t
 ```powershell
 npm test
 npm run test:browser
+# Optional complete browser regression suite:
+npm run test:browser:all
 npm run build
 ```
 
 Local browser tests use an installed Microsoft Edge. CI uses Playwright-managed Chromium, installed with `npx playwright install --with-deps chromium`.
+
+The default browser suite checks every campaign with one real hint action, exact reload and undo, plus shared controls and physics regressions (`@core`) and detailed scenarios for the latest additions (`@current`). Earlier full completion and repeated responsive tours remain available in `test:browser:all`; use it when a broad UI change needs that coverage. Move `@current` to each new batch rather than accumulating every old tour in CI. Rule tests sample eight boards per 48-level campaign; exhaustive replays are opt-in with `test:levels:all`.
 
 The tests verify representative opening solutions and generated samples across early, late, billionth, and safe-integer-limit puzzle numbers. They check surface topology, arrow and branch connectivity, solid exits and gap-flight collisions, obstruction rules, circle and button parking, gate closure, deflector transactions, moving sections and seams, difficulty progression, undo, compact completion ranges, save replay, actual mouse picking, rotation, complete keyboard play, endless continuation, family filtering, collection paging, dialogs, preferences, and desktop/mobile layouts. The production bundle is generated in `dist/`; use `npm run preview` to serve it locally.
 

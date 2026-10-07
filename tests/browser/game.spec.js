@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { LEVELS, createLevel, surfaceLayout } from '../../src/puzzle.js';
+
+test.describe('@core game',()=>{
 test.beforeEach(async ({ page }) => {
   await page.goto('/cube.html');
   await page.waitForFunction(() => Boolean(window.__cubeDebug));
@@ -419,4 +421,6 @@ test('later endless circles and a distant tier render, park, reload, and remain 
   await page.locator('#levels-button').click();
   expect(await page.evaluate(() => document.querySelector('#levels-dialog').scrollWidth <= document.querySelector('#levels-dialog').clientWidth)).toBe(true);
   expect(errors).toEqual([]);
+});
+
 });

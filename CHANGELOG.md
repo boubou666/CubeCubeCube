@@ -21,6 +21,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Changed
 
 - Campaign solution and hint tests sample eight levels per 48-level game, including every chapter boundary; physics, save replay, undo and mechanical regressions retain dedicated checks. Cube browser completion samples eight representative puzzles instead of replaying all 28. Exhaustive rule audits remain available with `npm run test:levels:all`.
+- The default browser suite checks every campaign with one action, exact reload and undo, plus shared input/physics regressions and detailed scenarios for the latest games. Older full completion and repeated layout tours are opt-in with `npm run test:browser:all`.
 
 
 ## [0.6.0] - 2026-10-07
