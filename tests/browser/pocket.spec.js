@@ -57,13 +57,13 @@ for (const mode of modes) {
 test('ten illustrated home cards link to the new games and each returns home', async ({ page }) => {
   await mkdir('.local/screenshots', { recursive:true });
   for (const width of [1440, 390, 320]) {
-    await page.setViewportSize({ width, height:1000 }); await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(27);
+    await page.setViewportSize({ width, height:1000 }); await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(30);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width !== 320) await page.screenshot({ path:`.local/screenshots/six-games-${width}.png`, fullPage:true });
   }
   for (const [name, mode] of [['Atelier', 'atelier'], ['Bobines', 'bobines'], ['Escapade', 'escapade']]) {
     await page.getByRole('link', { name:`Jouer à ${name}`, exact:true }).click(); await ready(page);
     await expect(page).toHaveURL(new RegExp(`/${mode}\\.html$`));
-    await page.getByRole('link', { name:'Les jeux', exact:true }).click(); await expect(page.locator('.game-card')).toHaveCount(27);
+    await page.getByRole('link', { name:'Les jeux', exact:true }).click(); await expect(page.locator('.game-card')).toHaveCount(30);
   }
 });

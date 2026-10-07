@@ -7,6 +7,22 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-07
+
+### Added
+
+- Plis: two-sided paper, whole-half folds, reflected geometry, reversed layers and target pictures with partial overlaps and expert double-fold tips.
+- Lucioles: colored beams, rotatable mirrors and three-port prisms, absorbing crystals, rocks and finite light-loop detection; hints solve the current optical arrangement.
+- Aiguillages: tiny locomotives and wagons, two-way rail junctions, lake detours, configurable departures and matching stations. Shared cells, opposite-edge swaps and occupied wagon cells produce actual collisions in the audited live simulation.
+- 48 distinct deterministic levels per game and 144 new audited puzzles. The collection now has 30 games and the twenty-seven independent additions contain 1,296 puzzles.
+- Four accessible chapters per game, independent replay saves, exact undo, verified hints, original home illustrations, optional sound, reduced motion, mouse/native touch and keyboard/sidebar controls.
+- Scrollable fold choices that keep the desktop board in view; selected optical hints and departure controls; dialog/hidden-tab pauses and undoable train trials.
+- All 31 HTML entry points in production and portable builds, with full route/hint audits and real responsive gameplay checks.
+
+### Fixed
+
+- Keyboard shortcuts respect focused departure selects so changing a train's waiting time does not trigger game actions.
+
 ## [0.5.0] - 2026-10-05
 
 ### Added
@@ -121,7 +137,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.2.0...v0.3.0
