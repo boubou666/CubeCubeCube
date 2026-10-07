@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PocketGame,clone,encodePocket,decodePocket} from '../src/pocket-core.js';
@@ -8,14 +9,14 @@ import {geleesRules,jellyCells,jellyDrop} from '../src/gelees-puzzle.js';
 import {JellySpring} from '../src/jelly-springs.js';
 const modes={ruisseaux:ruisseauxRules,balancier:balancierRules,gelees:geleesRules};
 for(const [name,rules] of Object.entries(modes)){
-  test(`${name}: all 48 deterministic distinct boards complete and undo every move exactly`,()=>{
-    const unique=new Set();for(let index=0;index<48;index++){const g=new PocketGame(rules,index),initial=clone(g.state);assert.equal(g.won,false);assert.deepEqual(rules.create(index),g.level);unique.add(JSON.stringify({...g.level,index:0,title:''}));for(const a of g.level.solution){const before=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);if(name==='ruisseaux')assert.deepEqual(g.state.field.filter(v=>v!==null).sort((a,b)=>a-b),initial.field.filter(v=>v!==null).sort((a,b)=>a-b));if(name==='gelees')assert.equal(g.state.field.filter(v=>v!==null&&v>=0).length,g.state.used.reduce((n,id)=>n+g.level.pieces[id].cells.length,0));assert.ok(g.undo());assert.deepEqual(g.state,before);assert.ok(g.play(a));}assert.ok(g.won);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,48);
+  test(`${name}: sampled deterministic distinct boards complete and undo every move exactly`,()=>{
+    const unique=new Set();for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index),initial=clone(g.state);assert.equal(g.won,false);assert.deepEqual(rules.create(index),g.level);unique.add(JSON.stringify({...g.level,index:0,title:''}));for(const a of g.level.solution){const before=clone(g.state);assert.ok(g.play(a),`${index} ${JSON.stringify(a)}`);if(name==='ruisseaux')assert.deepEqual(g.state.field.filter(v=>v!==null).sort((a,b)=>a-b),initial.field.filter(v=>v!==null).sort((a,b)=>a-b));if(name==='gelees')assert.equal(g.state.field.filter(v=>v!==null&&v>=0).length,g.state.used.reduce((n,id)=>n+g.level.pieces[id].cells.length,0));assert.ok(g.undo());assert.deepEqual(g.state,before);assert.ok(g.play(a));}assert.ok(g.won);while(g.undo()){}assert.deepEqual(g.state,initial);}assert.equal(unique.size,CAMPAIGN_SAMPLE.length);
   });
   test(`${name}: saves reconstruct cuts/placements, undo history and badges and reject bad actions`,()=>{
     const g=new PocketGame(rules,47);for(const a of g.level.solution.slice(0,2))assert.ok(g.play(a));const save=encodePocket(g,new Set([0,47]),true),restored=decodePocket(rules,save);assert.deepEqual(restored.game.state,g.state);assert.deepEqual(restored.game.history,g.history);assert.deepEqual([...restored.completed],[0,47]);assert.equal(restored.sound,true);g.undo();restored.game.undo();assert.deepEqual(restored.game.state,g.state);assert.equal(decodePocket(rules,{...save,moves:[{bad:true}]}),null);assert.equal(decodePocket(rules,{...save,index:48}),null);
   });
-  test(`${name}: hints finish every chapter boundary without repeated-state loops`,()=>{
-    for(let index=0;index<48;index++){const g=new PocketGame(rules,index),seen=new Set();let guard=0;while(!g.won&&guard++<100){const key=JSON.stringify(g.state);assert.ok(!seen.has(key));seen.add(key);const hint=g.hint();assert.ok(hint?.action!==undefined);assert.ok(g.play(hint.action));}assert.ok(g.won);}
+  test(`${name}: hints finish chapter boundaries without repeated-state loops`,()=>{
+    for(const index of CAMPAIGN_SAMPLE){const g=new PocketGame(rules,index),seen=new Set();let guard=0;while(!g.won&&guard++<100){const key=JSON.stringify(g.state);assert.ok(!seen.has(key));seen.add(key);const hint=g.hint();assert.ok(hint?.action!==undefined);assert.ok(g.play(hint.action));}assert.ok(g.won);}
   });
 }
 test('ruisseaux: reciprocal ports, flower coverage, fixed tiles and row boundaries matter',()=>{

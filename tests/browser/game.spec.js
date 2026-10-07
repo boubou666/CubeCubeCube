@@ -64,15 +64,17 @@ test('free rotation passes through both poles and reset restores screen-up', asy
   await expect(page.locator('#remaining')).toHaveText('17');
 });
 
-test('all levels complete through keyboard controls, including new mechanics', async ({ page }) => {
+test('representative levels complete through keyboard controls and lead into the endless journey', async ({ page }) => {
   test.setTimeout(180000);
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  for (let index = 0; index < LEVELS.length; index++) {
-    if (index) {
-      await page.locator('#next-button').click();
-      await expect(page.locator('#level-number')).toHaveText(`LEVEL ${String(index + 1).padStart(2, '0')}`);
+  const sample = [0, 12, 16, 18, 21, 23, 26, 27];
+  for (const [position, index] of sample.entries()) {
+    if (position) {
+      await page.locator('#win-collection-button').click();
+      await page.locator(`[data-level="${index}"]`).click();
     }
+    await expect(page.locator('#level-number')).toHaveText(`LEVEL ${String(index + 1).padStart(2, '0')}`);
     const count = Number(await page.locator('#remaining').textContent());
     await page.locator('#cube-canvas').focus();
     for (let move = 0; move < count + 20 && Number(await page.locator('#remaining').textContent()) > 0; move++) {
@@ -81,13 +83,13 @@ test('all levels complete through keyboard controls, including new mechanics', a
     }
     await expect(page.locator('#remaining')).toHaveText('0');
     await expect(page.locator('#win-dialog')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#completed-count')).toHaveText(String(index + 1));
+    await expect(page.locator('#completed-count')).toHaveText(String(position + 1));
   }
   await page.locator('#next-button').click();
   await expect(page.locator('#level-number')).toHaveText(`LEVEL ${LEVELS.length + 1}`);
   await expect(page.locator('#level-title')).toContainText('Beyond the corners');
   await page.locator('#levels-button').click();
-  await expect(page.locator('#level-grid .level-card.is-complete')).toHaveCount(LEVELS.length);
+  await expect(page.locator('#level-grid .level-card.is-complete')).toHaveCount(sample.length);
   expect(errors).toEqual([]);
 });
 

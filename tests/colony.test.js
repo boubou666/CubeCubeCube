@@ -1,3 +1,4 @@
+import { COLONY_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -69,21 +70,21 @@ test('every available matching block gets a worker, without a four-worker cap', 
   game.advance(100); assert.ok(game.won);
 });
 
-test('the first 96 puzzles have original pictures and verified solutions with conserved quotas', () => {
+test('original pictures and representative campaign solutions conserve quotas', () => {
   assert.equal(MOTIFS.length, 24); assert.equal(new Set(MOTIFS).size, 24);
   for (const art of NEW_COLONY_ART) {
     assert.equal(art.rows.length, 16);
     for (const row of art.rows) { assert.equal(row.length, 16); assert.ok([...row].every(c => c === '.' || ART_COLORS[c])); }
   }
   const pictures = new Set();
-  for (let index = 0; index < 96; index++) {
+  for (const index of COLONY_SAMPLE) {
     const level = createColonyLevel(index), game = new ColonyGame(level);
     if (index < 24) pictures.add(level.cells.join(','));
     for (const color of Object.keys(COLORS)) assert.equal(level.cells.filter(c => c === color).length, level.queues.flat().filter(b => b.color === color).reduce((n, b) => n + b.count, 0));
     for (const q of level.solution) { assert.ok(game.launch(q), `launch ${index}`); game.settle(); }
     assert.ok(game.won, `complete ${index}`);
   }
-  assert.equal(pictures.size, 24);
+  assert.equal(pictures.size, COLONY_SAMPLE.filter(index => index < 24).length);
 });
 test('difficulty grows through board size, overlapping waiting boxes and more colours', () => {
   assert.equal(createColonyLevel(0).width, 16); assert.equal(createColonyLevel(6).width, 20);

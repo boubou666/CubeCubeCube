@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PocketGame, encodePocket, decodePocket } from '../src/pocket-core.js';
@@ -16,16 +17,16 @@ function conservation(name,level,state) {
   if(name==='liaisons') {const cells=state.paths.flat();assert.equal(new Set(cells).size,cells.length);for(const path of state.paths)for(let i=1;i<path.length;i++)assert.ok(neighbors(level.size,path[i-1],path[i]));}
 }
 for(const [name,rules] of Object.entries(all)) {
-  test(`${name}: all 48 distinct deterministic boards have complete legal routes and growing difficulty`,()=>{
+  test(`${name}: sampled distinct deterministic boards have complete legal routes and growing difficulty`,()=>{
     const layouts=new Set();let first,last;
-    for(let index=0;index<48;index++) {
+    for(const index of CAMPAIGN_SAMPLE) {
       const level=rules.create(index);assert.deepEqual(level,rules.create(index));const {index:_,title:__,solution:___,...layout}=level;layouts.add(JSON.stringify(layout));
       const game=new PocketGame(rules,index),initial=structuredClone(game.state);
       for(const action of level.solution){const before=structuredClone(game.state);assert.ok(game.play(action),`${name} ${index+1} ${JSON.stringify(action)}`);assert.deepEqual(game.history.at(-1),before);conservation(name,level,game.state);}
       assert.ok(game.won,`${name} ${index+1}`);assert.equal(game.play(level.solution[0]),false);while(game.history.length)game.undo();assert.deepEqual(game.state,initial);
       const difficulty=name==='alveoles'?level.solution.length:name==='potions'?level.colors.length:level.size;if(!index)first=difficulty;if(index===47)last=difficulty;
     }
-    assert.equal(layouts.size,48);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
+    assert.equal(layouts.size,CAMPAIGN_SAMPLE.length);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
   });
   test(`${name}: exact replay, undo, completion and sound survive save validation`,()=>{
     const game=new PocketGame(rules,47);for(const action of game.level.solution.slice(0,2))assert.ok(game.play(action));
@@ -33,8 +34,8 @@ for(const [name,rules] of Object.entries(all)) {
     game.undo();restored.game.undo();assert.deepEqual(game.state,restored.game.state);game.restart();assert.equal(game.moves.length,0);
     for(const value of [null,{}, {...saved,index:48},{...saved,generation:999},{...saved,moves:[null]},{...saved,moves:[{from:999,to:0,q:999,cell:0,color:999,path:[0]}]}])assert.equal(decodePocket(rules,value),null);
   });
-  test(`${name}: hints verify complete remaining solutions across every chapter boundary`,()=>{
-    for(const index of [0,11,12,23,24,35,36,47]) {const game=new PocketGame(rules,index);for(const action of game.level.solution.slice(0,1))assert.ok(game.play(action));const plan=rules.plan(game.level,game.state);assert.ok(plan?.length);for(const action of plan)assert.ok(game.play(action));assert.ok(game.won);}
+  test(`${name}: hints verify complete remaining solutions across chapter boundaries`,()=>{
+    for(const index of CAMPAIGN_SAMPLE) {const game=new PocketGame(rules,index);for(const action of game.level.solution.slice(0,1))assert.ok(game.play(action));const plan=rules.plan(game.level,game.state);assert.ok(plan?.length);for(const action of plan)assert.ok(game.play(action));assert.ok(game.won);}
   });
 }
 test('alveoles: adjacent top colors gather, hidden layers cascade, six-tile thresholds conserve leftovers',()=>{

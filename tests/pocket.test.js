@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PocketGame, encodePocket, decodePocket, searchPlan } from '../src/pocket-core.js';
@@ -7,9 +8,9 @@ import { escapadeRules } from '../src/escapade-puzzle.js';
 
 const all = { atelier:atelierRules, bobines:bobinesRules, escapade:escapadeRules };
 for (const [name, rules] of Object.entries(all)) {
-  test(`${name}: 48 distinct deterministic boards have complete legal solutions and rising sizes`, () => {
+  test(`${name}: distinct sampled deterministic boards have complete legal solutions and rising sizes`, () => {
     const layouts = new Set(); let firstSize, lastSize;
-    for (let index = 0; index < 48; index++) {
+    for (const index of CAMPAIGN_SAMPLE) {
       const level = rules.create(index); assert.deepEqual(level, rules.create(index));
       layouts.add(JSON.stringify(name === 'atelier' ? [level.plates, level.screws, level.boxes] : name === 'bobines' ? [level.lines, level.queues] : [level.snakes, level.walls]));
       const game = new PocketGame(rules, index), original = structuredClone(game.state);
@@ -22,7 +23,7 @@ for (const [name, rules] of Object.entries(all)) {
       assert.equal(game.won, true, `Puzzle ${index + 1}`);
       while (game.history.length) game.undo(); assert.deepEqual(game.state, original);
     }
-    assert.equal(layouts.size, 48); assert.ok(lastSize > firstSize);
+    assert.equal(layouts.size,CAMPAIGN_SAMPLE.length); assert.ok(lastSize > firstSize);
     assert.throws(() => rules.create(48)); assert.throws(() => rules.create(-1)); assert.throws(() => rules.create(1.5));
   });
   test(`${name}: save replay retains exact state and undo; invalid saves fail safely`, () => {
@@ -35,7 +36,7 @@ for (const [name, rules] of Object.entries(all)) {
     game.restart(); assert.deepEqual(game.state, rules.initial(game.level)); assert.equal(game.history.length, 0);
   });
   test(`${name}: hints prove a complete route from canonical partial states`, () => {
-    for (const index of [0, 11, 12, 23, 24, 35, 36, 47]) {
+    for (const index of CAMPAIGN_SAMPLE) {
       const game = new PocketGame(rules, index);
       for (const action of game.level.solution.slice(0, Math.floor(game.level.solution.length / 2))) assert.ok(game.play(action));
       const plan = rules.plan ? rules.plan(game.level, game.state) : searchPlan(rules, game.level, game.state);

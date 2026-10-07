@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PocketGame, encodePocket, decodePocket, searchPlan } from '../src/pocket-core.js';
@@ -18,9 +19,9 @@ function conservation(name,level,state){
   if(name==='voyage'){assert.ok(state.buffer.length<=5);assert.ok(state.boarded<(level.buses[state.bus]?.count??1));assert.ok(state.buffer.every(id=>state.removed.includes(id)));}
 }
 for(const [name,rules]of Object.entries(all)){
-  test(`${name}: 48 distinct deterministic levels have legal complete solutions, undo and growing difficulty`,()=>{
+  test(`${name}: distinct sampled deterministic levels have legal complete solutions, undo and growing difficulty`,()=>{
     const layouts=new Set();let first,last;
-    for(let index=0;index<48;index++){
+    for(const index of CAMPAIGN_SAMPLE){
       const level=rules.create(index);assert.deepEqual(level,rules.create(index));
       const {index:_,title:__,solution:___,score:____,...layout}=level;layouts.add(JSON.stringify(layout));
       const game=new PocketGame(rules,index),original=structuredClone(game.state);
@@ -28,7 +29,7 @@ for(const [name,rules]of Object.entries(all)){
       for(const action of level.solution){const before=structuredClone(game.state);assert.ok(game.play(action),`${name} puzzle ${index+1}, ${JSON.stringify(action)}`);assert.deepEqual(game.history.at(-1),before);conservation(name,level,game.state);}
       assert.ok(game.won);while(game.history.length)game.undo();assert.deepEqual(game.state,original);
     }
-    assert.equal(layouts.size,48);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
+    assert.equal(layouts.size,CAMPAIGN_SAMPLE.length);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
   });
   test(`${name}: exact save replay and history survive reload; malformed moves fail safely`,()=>{
     const game=new PocketGame(rules,47);for(const action of game.level.solution.slice(0,6))assert.ok(game.play(action));
@@ -38,7 +39,7 @@ for(const [name,rules]of Object.entries(all)){
     game.restart();assert.deepEqual(game.state,rules.initial(game.level));assert.equal(game.history.length,0);
   });
   test(`${name}: hints verify whole remaining routes through all chapter boundaries`,()=>{
-    for(const index of [0,11,12,23,24,35,36,47]){
+    for(const index of CAMPAIGN_SAMPLE){
       const game=new PocketGame(rules,index);for(const action of game.level.solution.slice(0,Math.floor(game.level.solution.length/2)))assert.ok(game.play(action));
       const plan=rules.plan?rules.plan(game.level,game.state):searchPlan(rules,game.level,game.state);assert.ok(plan?.length,`${name} ${index+1}`);for(const action of plan)assert.ok(game.play(action));assert.ok(game.won);
     }

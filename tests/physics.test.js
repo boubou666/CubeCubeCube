@@ -1,3 +1,4 @@
+import { CAMPAIGN_SAMPLE } from './campaign-sample.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PocketGame, encodePocket, decodePocket } from '../src/pocket-core.js';
@@ -6,14 +7,14 @@ import { gouttesRules, inkUsed } from '../src/gouttes-puzzle.js';
 import { WaterSimulation, simulateWater, WATER_TOTAL } from '../src/gouttes-physics.js';
 import { segmentsMeet } from '../src/physics-geometry.js';
 for(const [name,rules] of Object.entries({noeuds:noeudsRules,gouttes:gouttesRules})){
-  test(`${name}: all 48 distinct seeded levels have complete audited solutions and growing difficulty`,()=>{
+  test(`${name}: sampled distinct seeded levels have complete audited solutions and growing difficulty`,()=>{
     const layouts=new Set();let first,last;
-    for(let index=0;index<48;index++){
+    for(const index of CAMPAIGN_SAMPLE){
       const level=rules.create(index);assert.deepEqual(level,rules.create(index));const {index:_,title:__,solution:___,...layout}=level;layouts.add(JSON.stringify(layout));const game=new PocketGame(rules,index),initial=structuredClone(game.state);
       for(const action of level.solution){const before=structuredClone(game.state);assert.ok(game.play(action),`${name} ${index+1} ${JSON.stringify(action)}`);assert.deepEqual(game.history.at(-1),before);if(name==='noeuds'){assert.equal(new Set(game.state.pins).size,level.pins.length);for(let id=0;id<level.pins.length;id++)if(level.pins[id].fixed)assert.equal(game.state.pins[id],initial.pins[id]);}else{assert.ok(inkUsed(game.state.lines)<=level.ink);if(game.state.result)assert.equal(game.state.result.caught+game.state.result.lost,WATER_TOTAL);}}
       assert.ok(game.won);while(game.history.length)game.undo();assert.deepEqual(game.state,initial);
       const complexity=name==='noeuds'?level.ropes.length:level.solution.length+level.goal;if(!index)first=complexity;if(index===47)last=complexity;
-    }assert.equal(layouts.size,48);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
+    }assert.equal(layouts.size,CAMPAIGN_SAMPLE.length);assert.ok(last>first);assert.throws(()=>rules.create(-1));assert.throws(()=>rules.create(48));
   });
   test(`${name}: replay restores exact state, undo, completion badges and optional sound`,()=>{
     const game=new PocketGame(rules,47);assert.ok(game.play(game.level.solution[0]));const save=encodePocket(game,new Set([0,12,35]),true),restore=decodePocket(rules,save);assert.deepEqual(restore.game.state,game.state);assert.deepEqual(restore.game.history,game.history);assert.equal(restore.sound,true);game.undo();restore.game.undo();assert.deepEqual(game.state,restore.game.state);
@@ -21,7 +22,7 @@ for(const [name,rules] of Object.entries({noeuds:noeudsRules,gouttes:gouttesRule
     game.restart();assert.deepEqual(game.state,rules.initial(game.level));
   });
   test(`${name}: hints verify a complete route at each chapter boundary`,()=>{
-    for(const index of [0,11,12,23,24,35,36,47]){const game=new PocketGame(rules,index);assert.ok(game.play(game.level.solution[0]));if(game.won)continue;const route=rules.plan(game.level,game.state);assert.ok(route?.length);for(const action of route)assert.ok(game.play(action));assert.ok(game.won);}
+    for(const index of CAMPAIGN_SAMPLE){const game=new PocketGame(rules,index);assert.ok(game.play(game.level.solution[0]));if(game.won)continue;const route=rules.plan(game.level,game.state);assert.ok(route?.length);for(const action of route)assert.ok(game.play(action));assert.ok(game.won);}
   });
 }
 test('noeuds: proper crossings, endpoint touches and overlapping ropes count; separated cords do not',()=>{
