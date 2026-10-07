@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-07
+
+### Added
+
+- Cagettes: push-only crate gardens, two or three baskets, original hedges and flower goals. Backward construction guarantees legal forward solutions; complete-route hints and exact undo handle dead ends.
+- Cairns: move numbered rings between three or four rods, respecting ring size and the actual bridge graph. Later gardens remove bridges; shortest verified hints work from every legal configuration.
+- Jalons: visit every cell once through ordered numbered checkpoints and real murets. Draw one continuous gesture, shorten its draft by backtracking, or use native cell buttons and keyboard arrows.
+- 48 deterministic levels per game in four open chapters, 144 new puzzles, independent local saves, free hints, original illustrated home cards, normal and reduced animations and accessible mouse/touch/keyboard/sidebar controls. The collection now has 39 games and 1,728 puzzles across its thirty-six independent additions.
+- 40 HTML entry points in portable and public builds; bounded campaign audits and current browser checks cover gestures, cancelled input, animation undo, first/expert finishes and desktop/390px/320px layouts.
+
+### Changed
+
+- Detailed default browser tours rotate to this batch while all-game action/reload/undo smoke checks and shared regressions remain required. Exhaustive audits remain opt-in.
+
 ## [0.8.0] - 2026-10-07
 
 ### Added
@@ -168,7 +182,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Arrows being generated with exits that ran into tunnel walls or other solid geometry.
 - Asset paths and the home link when hosted under a GitHub Pages repository path.
 
-[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/boubou666/CubeCubeCube/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/boubou666/CubeCubeCube/compare/v0.5.0...v0.6.0
