@@ -1,6 +1,6 @@
 # Cube Cube Cube
 
-A small collection of relaxing browser puzzles, built with Three.js, vanilla JavaScript, and Vite. The home page offers 39 original illustrated games, including crate gardens, ring towers, numbered paths, the 3D cube, picture puzzles, an ant colony and thirty-three other little escapes. No account, advertising, timers or paid hints.
+A small collection of relaxing browser puzzles, built with Three.js, vanilla JavaScript, and Vite. The home page offers 42 original illustrated games, including flower deductions, picture logic, lantern toggles, the 3D cube, picture puzzles, an ant colony and thirty-six other little escapes. No account, advertising, timers or paid hints.
 
 **[Play online](https://boubou666.github.io/CubeCubeCube/)** · **[Source code](https://github.com/boubou666/CubeCubeCube)**
 
@@ -264,10 +264,20 @@ Pure rules and generators live in the three puzzle modules; `src/roll-geometry.j
 
 ## Cagettes, Cairns and Jalons
 
-Each game has 48 original deterministic puzzles in four open chapters, free hints, exact undo, local replay saves and original artwork. The collection now has 39 games and 1,728 puzzles across its thirty-six independent additions.
+Each game has 48 original deterministic puzzles in four open chapters, free hints, exact undo, local replay saves and original artwork. These three campaigns added 144 puzzles to the collection in v0.9.0.
 
 - **Cagettes (`cagettes.html`)**, inspired by [Push The Box - Sokoban](https://play.google.com/store/apps/details?id=com.bbtoolsfactory.pushthebox): push a single crate at a time onto a flower. Crates cannot be pulled, walls block both bodies, and walking around to the correct side is essential. Levels are generated backwards through legal pulls and audited by real forward pushes. Swipe, neighboring-cell clicks, arrows and native direction buttons share the rules. Hints verify complete push routes and offer undo from dead ends.
 - **Cairns (`cairns.html`)**, inspired by [Hanoi’s Towers](https://play.google.com/store/apps/details?id=com.bestlis.hanoi): transfer numbered rings onto the target rod. Only the top ring moves, a larger ring cannot cover a smaller one, and later chapters remove bridges between rods. A complete finite search gives shortest hints from every legal configuration. Drag, click source/destination rods, use their native buttons, or press 1–4. Rings visibly lift, travel and settle.
 - **Jalons (`jalons.html`)**, inspired by [Zip Connect](https://play.google.com/store/apps/details?id=com.akz.zip): visit every cell exactly once, follow numbered checkpoints in order, and reach the final number last. Actual walls block cell-to-cell movement. Seeded Hamiltonian paths become original gardens through endpoint transformations. A whole touch/mouse stroke is one undoable action; backtracking inside a draft shortens it before release. Keyboard and native cell buttons allow single steps. Alternate complete paths are accepted; hints only suggest verified finishes.
 
-Rules are in the three puzzle modules; original scenes and controls are in `src/orchard-{canvas,config,style,previews}`. Default tests keep eight campaign samples, all-game smoke checks and shared regressions. Detailed browser tours rotate to this batch; exhaustive campaign and browser suites remain opt-in.
+Rules are in the three puzzle modules; original scenes and controls are in `src/orchard-{canvas,config,style,previews}`. Default tests keep eight campaign samples, all-game smoke checks and shared regressions. Detailed browser tours rotate to the latest batch; exhaustive campaign and browser suites remain opt-in.
+
+## Bosquets, Gravures and Veillées
+
+Each game has 48 deterministic puzzles in four open chapters, original artwork, free hints, exact undo, independent replay saves and mouse/native-touch/keyboard/sidebar controls. The collection reaches 42 games and 1,872 puzzles across its thirty-nine independent additions.
+
+- **Bosquets (`bosquets.html`)**, inspired by [Queens Puzzle Game](https://play.google.com/store/apps/details?id=com.rkk.queens): place one flower per row, column and connected color region. Flowers cannot touch, including adjacent diagonals; distant diagonals are allowed. Each original garden has exactly one verified placement. Crosses record deductions, contradictions stay editable without lives, and hints correct incompatible marks before completing a verified route. Grids grow from 5×5 to 8×8.
+- **Gravures (`gravures.html`)**, inspired by [Nonogram – Puzzles](https://play.google.com/store/apps/details?id=co.mashaal.nonogramgame): row and column clues describe consecutive filled groups separated by blanks. Color the image and cross every empty cell. Original seeded silhouettes are accepted only when line-constraint propagation completely solves them, without guessing. Hints resolve a row of deductions; filled, crossed and erased strokes are each one action. Grids grow from 5×5 to 8×8, with a readable native clue ledger for smaller screens.
+- **Veillées (`veillees.html`)**, inspired by [Lights Out: Night Atlas Math](https://play.google.com/store/apps/details?id=com.codexa.lightsout): each lantern toggles itself and actual orthogonal or diagonal neighbors. The final chapter joins opposite edges. Construction starts from the dark garden and uses legal toggles; modulo-two elimination calculates a verified completion from the current board. Tap previews show the affected lights, transitions illuminate the real group, and undo restores every light. Grids grow from 3×3 to 6×6.
+
+Pure rules live in the three puzzle modules; scenes, controls and illustrations are in `src/twilight-{canvas,config,style,previews}`. Default tests retain eight representative boards, all-game smoke checks and shared regressions; detailed browser tours rotate to this batch. Exhaustive campaigns and browser tours remain opt-in.

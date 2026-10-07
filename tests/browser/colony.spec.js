@@ -3,11 +3,11 @@ import { mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 
 test('@core home cards open each game and every game returns home', async ({ page }) => {
-  await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(39);
+  await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(42);
   for (const [label, path, ready] of [['The cube', '/cube.html', '#remaining'], ['Picture puzzles', '/image.html', '#picture-canvas'], ['Colony', '/colony.html', '#colony-canvas']]) {
     await page.getByRole('link', { name: `Jouer à ${label}`, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${path.replace('.', '\\.')}$$`)); await expect(page.locator(ready)).toBeVisible();
-    await page.locator('header a').first().click(); await expect(page.locator('.game-card')).toHaveCount(39);
+    await page.locator('header a').first().click(); await expect(page.locator('.game-card')).toHaveCount(42);
   }
 });
 test('@core real boxes launch workers, transport cubes, pause, save and undo', async ({ page }) => {
@@ -54,7 +54,7 @@ test('desktop and mobile layouts retain reachable cards, queues and controls', a
   await mkdir('.local/screenshots', { recursive: true });
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
-    await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(39);
+    await page.goto('/'); await expect(page.locator('.game-card')).toHaveCount(42);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 1440) await page.screenshot({ path: '.local/screenshots/home-desktop.png', fullPage: true });
     await page.getByRole('link', { name: 'Jouer à Colony' }).click(); await page.waitForFunction(() => Boolean(window.__colonyDebug));
